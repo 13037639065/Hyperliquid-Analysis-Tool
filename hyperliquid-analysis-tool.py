@@ -22,7 +22,7 @@ from dateutil.relativedelta  import relativedelta
 # 缓存目录配置 
 CACHE_DIR = "trading_data_cache"
 os.makedirs(CACHE_DIR,  exist_ok=True)
- 
+
 def get_hyperliquid_trades(address, symbol):
     """获取并缓存Hyperliquid交易记录"""
     cache_file = os.path.join(CACHE_DIR,  f"{address}_{symbol.upper()}_trades.json") 
@@ -101,32 +101,34 @@ def get_binance_klines(symbol, interval, time_range):
  
 def process_trades(trades, symbol):
     """处理交易数据并计算盈亏"""
-    buy_events = []
-    sell_events = []
+    open_long_events = []
+    close_short_events = []
+    close_long_events = []
+    open_short_events = []
     positions = []
     realized_pnl = 0
     total_buy_qty = 0 
     total_sell_qty = 0 
-    
+
     for trade in trades:
         if trade['coin'].upper() != symbol.upper(): 
             continue 
             
-        timestamp = datetime.datetime.fromtimestamp(int(trade['time'])  / 1000.)
+        timestamp = datetime.datetime.fromtimestamp(int(trade['time']) / 1000.)
         price = float(trade['px'])
         qty = float(trade['sz'])
-        
-         # Handle different trade types for futures trading
-        if trade['dir'] in ['Open Long']:  # Open Long
-            buy_events.append((timestamp, price, qty))
+
+        # Open Long
+        if trade['dir'] == 'Open Long':
+            open_long_events.append((timestamp, price, qty))
             positions.append({'timestamp': timestamp, 'price': price, 'qty': qty})
             total_buy_qty += qty
-            
-        elif trade['dir'] in ['Close Short', '平空']:  # Close Short
-            buy_events.append((timestamp, price, qty))
+
+        # Close Short
+        elif trade['dir'] == 'Close Short':
+            close_short_events.append((timestamp, price, qty))
             total_buy_qty += qty
             
-            # FIFO calculation for realized profit/loss when closing short
             remaining_qty = qty
             while remaining_qty > 0 and positions:
                 position = positions[0]
@@ -139,11 +141,11 @@ def process_trades(trades, symbol):
                     remaining_qty -= position['qty']
                     positions.pop(0)
 
-        elif trade['dir'] in ['Close Long', '平多']:  # Close Long
-            sell_events.append((timestamp, price, qty))
+        # Close Long
+        elif trade['dir'] == 'Close Long':
+            close_long_events.append((timestamp, price, qty))
             total_sell_qty += qty
             
-            # FIFO calculation for realized profit/loss when closing long
             remaining_qty = qty
             while remaining_qty > 0 and positions:
                 position = positions[0]
@@ -156,38 +158,38 @@ def process_trades(trades, symbol):
                     remaining_qty -= position['qty']
                     positions.pop(0)
 
-        elif trade['dir'] in ['Open Short', '开空']:  # Open Short
-            sell_events.append((timestamp, price, qty))
+        # Open Short
+        elif trade['dir'] == 'Open Short':
+            open_short_events.append((timestamp, price, qty))
             total_sell_qty += qty
-            
-            # For short positions, we store them differently or invert the PNL calculation
-            # We'll store them as negative quantities or with a position type marker
             positions.append({
                 'timestamp': timestamp,
                 'price': price,
                 'qty': qty,
                 'position_type': 'short'
             })
-    
+
     # 计算未实现盈亏
     unrealized_pnl = 0 
-    current_value = 0
     for position in positions:
-        unrealized_pnl += position['qty'] * (df['close'].iloc[-1] - position['price'])
-        current_value += position['qty'] * position['price']
-    
+        if position.get('position_type') == 'short':
+            unrealized_pnl += position['qty'] * (position['price'] - df['close'].iloc[-1])
+        else:
+            unrealized_pnl += position['qty'] * (df['close'].iloc[-1] - position['price'])
+
     total_pnl = realized_pnl + unrealized_pnl
-    
-    # 创建交易标记DF 
-    buy_df = pd.DataFrame(buy_events, columns=['timestamp', 'price', 'qty'])
-    buy_df.set_index('timestamp',  inplace=True)
-    
-    sell_df = pd.DataFrame(sell_events, columns=['timestamp', 'price', 'qty'])
-    sell_df.set_index('timestamp',  inplace=True)
-    
+
+    # 构建交易标记 DataFrame
+    open_long_df = pd.DataFrame(open_long_events, columns=['timestamp', 'price', 'qty']).set_index('timestamp')
+    close_short_df = pd.DataFrame(close_short_events, columns=['timestamp', 'price', 'qty']).set_index('timestamp')
+    close_long_df = pd.DataFrame(close_long_events, columns=['timestamp', 'price', 'qty']).set_index('timestamp')
+    open_short_df = pd.DataFrame(open_short_events, columns=['timestamp', 'price', 'qty']).set_index('timestamp')
+
     return {
-        'buy_events': buy_df,
-        'sell_events': sell_df,
+        'open_long_events': open_long_df,
+        'close_short_events': close_short_df,
+        'close_long_events': close_long_df,
+        'open_short_events': open_short_df,
         'realized_pnl': realized_pnl,
         'unrealized_pnl': unrealized_pnl,
         'total_pnl': total_pnl,
@@ -202,21 +204,18 @@ def plot_trading_data(df, trade_data, args):
     
     # Ensure both dataframes have the same timezone
     df = df.copy()
-    trade_data['buy_events'] = trade_data['buy_events'].copy()
-    trade_data['sell_events'] = trade_data['sell_events'].copy()
     
     # Make sure all timestamps are in UTC and properly localized
-    df.index = df.index.tz_localize("UTC")
-    trade_data['buy_events'].index = trade_data['buy_events'].index.tz_localize("UTC")
-    trade_data['sell_events'].index = trade_data['sell_events'].index.tz_localize("UTC")
+    df.index = pd.to_datetime(df.index)
+    print(df.index)
     
     fig, axes = mpf.plot( 
         df,
         type='candle',
         volume=True,
-        title=f"\n{args.symbol} 交易分析 | 时间范围: {args.time_range}  | 间隔: {args.interval}", 
+        title=f"\n{args.symbol} analysis | time range: {args.time_range}  | interval: {args.interval}", 
         style='charles',
-        ylabel='价格 (USDT)',
+        ylabel='price (USDT)',
         figratio=(14, 7),
         figscale=1.2,
         returnfig=True,
@@ -225,48 +224,80 @@ def plot_trading_data(df, trade_data, args):
     
     ax1 = axes[0]
     
-    # 标记买入点 
-    if not trade_data['buy_events'].empty:
-        # Convert timestamps to matplotlib format
-        buy_dates = [mdates.date2num(pd.to_datetime(d).tz_convert("UTC").replace(tzinfo=None)) for d in trade_data['buy_events'].index]
-        ax1.scatter( 
-            buy_dates,
-            trade_data['buy_events']['price'],
-            marker='^',
-            color='#00FF7F',
-            s=120,
-            edgecolors='white',
-            zorder=10,
-            label='买入'
-        )
-    
-    # 标记卖出点
-    if not trade_data['sell_events'].empty:
-        sell_dates = [mdates.date2num(pd.to_datetime(d).tz_convert("UTC").replace(tzinfo=None)) for d in trade_data['sell_events'].index]
-        ax1.scatter( 
-            sell_dates,
-            trade_data['sell_events']['price'],
+    # 标记 Open Long（绿色三角）
+    # if not trade_data['open_long_events'].empty:
+    #     trade_data['open_long_events'].index = pd.to_datetime(trade_data['open_long_events'].index)
+    #     ax1.scatter(
+    #         trade_data['open_long_events'].index,
+    #         trade_data['open_long_events']['price'],
+    #         marker='^',
+    #         color='#00FF7F',  # 绿色
+    #         s=120,
+    #         edgecolors='white',
+    #         zorder=10,
+    #         label='Buy (Open Long)'
+    #     )
+
+    # 标记 Close Short（橙色三角）
+    # if not trade_data['close_short_events'].empty:
+    #     print(trade_data['close_short_events'].index[0])
+    #     ax1.scatter(
+    #         trade_data['close_short_events'].index,
+    #         trade_data['close_short_events']['price'],
+    #         marker='^',
+    #         color='#FFA500',  # 橙色
+    #         s=120,
+    #         edgecolors='white',
+    #         zorder=10,
+    #         label='Buy to Close Short'
+    #     )
+    test_time = pd.to_datetime('2023-05-05 09:00:00')
+    ax1.axvline(test_time, color='red', linestyle='--', linewidth=1, zorder=20)
+
+    # # 标记 Close Long（红色倒三角）
+    if not trade_data['close_long_events'].empty:
+        trade_data['close_long_events'].index = pd.to_datetime(trade_data['close_long_events'].index, format='%Y-%m-%d %H:%M:%S')
+        print("xxxxxxxxxx")
+        print(trade_data['close_long_events'].index)
+        ax1.scatter(
+            trade_data['close_long_events'].index,
+            trade_data['close_long_events']['price'],
             marker='v',
-            color='#FF6347',
+            color='#FF6347',  # 红色
             s=120,
             edgecolors='white',
             zorder=10,
-            label='卖出'
+            label='Sell to Close Long'
         )
+
+    # # 标记 Open Short（蓝色倒三角）
+    # if not trade_data['open_short_events'].empty:
+    #     ax1.scatter(
+    #         trade_data['open_short_events'].index,
+    #         trade_data['open_short_events']['price'],
+    #         marker='v',
+    #         color='#1E90FF',  # 蓝色
+    #         s=120,
+    #         edgecolors='white',
+    #         zorder=10,
+    #         label='Sell (Open Short)'
+    #     )
     
     # 添加图例
     ax1.legend(loc='best') 
     
     # 添加盈亏信息
     pnl_text = (
-        f"交易统计:\n"
-        f"买入次数: {len(trade_data['buy_events'])}\n"
-        f"卖出次数: {len(trade_data['sell_events'])}\n"
-        f"总买入量: {trade_data['total_buy_qty']:.4f} {args.symbol}\n"
-        f"总卖出量: {trade_data['total_sell_qty']:.4f} {args.symbol}\n"
-        f"已实现盈亏: ${trade_data['realized_pnl']:.2f}\n"
-        f"未实现盈亏: ${trade_data['unrealized_pnl']:.2f}\n"
-        f"总计盈亏: ${trade_data['total_pnl']:.2f}"
+        f"Trade Statistics:\n"
+        f"Open Long Count: {len(trade_data['open_long_events'])}\n"
+        f"Close Short Count: {len(trade_data['close_short_events'])}\n"
+        f"Close Long Count: {len(trade_data['close_long_events'])}\n"
+        f"Open Short Count: {len(trade_data['open_short_events'])}\n"
+        f"Total Buy Quantity: {trade_data['total_buy_qty']:.4f} {args.symbol}\n"
+        f"Total Sell Quantity: {trade_data['total_sell_qty']:.4f} {args.symbol}\n"
+        f"Realized P&L: ${trade_data['realized_pnl']:.2f}\n"
+        f"Unrealized P&L: ${trade_data['unrealized_pnl']:.2f}\n"
+        f"Total P&L: ${trade_data['total_pnl']:.2f}"
     )
     
     ax1.text( 
@@ -277,14 +308,13 @@ def plot_trading_data(df, trade_data, args):
     )
     
     # 格式化日期
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
     fig.autofmt_xdate() 
     
     # 添加网格
     ax1.grid(True,  linestyle='--', alpha=0.3)
     
     # 保存图表 
-    output_file = f"{args.address[:6]}_{args.symbol}_{args.interval}_{args.time_range}_analysis.png" 
+    output_file = f"./{CACHE_DIR}/{args.address[:6]}_{args.symbol}_{args.interval}_{args.time_range}_analysis.png" 
     plt.savefig(output_file,  dpi=150, bbox_inches='tight')
     print(f"\n图表已保存至: {output_file}")
     
@@ -327,8 +357,10 @@ if __name__ == "__main__":
     # 打印摘要 
     print("\n交易摘要:")
     print(f"• 找到 {len(trades)} 条交易记录")
-    print(f"• 买入次数: {len(trade_data['buy_events'])}")
-    print(f"• 卖出次数: {len(trade_data['sell_events'])}")
+    print(f"• 开多仓 (Open Long) 次数: {len(trade_data['open_long_events'])}")
+    print(f"• 平空仓 (Close Short) 次数: {len(trade_data['close_short_events'])}")
+    print(f"• 平多仓 (Close Long) 次数: {len(trade_data['close_long_events'])}")
+    print(f"• 开空仓 (Open Short) 次数: {len(trade_data['open_short_events'])}")
     print(f"• 总买入量: {trade_data['total_buy_qty']:.6f} {args.symbol}") 
     print(f"• 总卖出量: {trade_data['total_sell_qty']:.6f} {args.symbol}") 
     print(f"• 当前持仓: {len(trade_data['positions'])} 个仓位")
