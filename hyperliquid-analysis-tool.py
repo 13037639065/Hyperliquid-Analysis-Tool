@@ -14,16 +14,14 @@ import datetime
 import os
 import argparse 
 import time 
-import matplotlib.pyplot  as plt 
-import matplotlib.dates  as mdates 
-import numpy as np
+import matplotlib.pyplot as plt 
 from dateutil.relativedelta  import relativedelta
  
 # 缓存目录配置 
 CACHE_DIR = "trading_data_cache"
 os.makedirs(CACHE_DIR,  exist_ok=True)
 
-def get_hyperliquid_trades(address, symbol):
+def get_hyperliquid_trades(address, symbol, time_range):
     """获取并缓存Hyperliquid交易记录"""
     cache_file = os.path.join(CACHE_DIR,  f"{address}_{symbol.upper()}_trades.json") 
     
@@ -198,6 +196,38 @@ def process_trades(trades, symbol):
         'total_sell_qty': total_sell_qty 
     }
  
+def plot_trading_markers(ax, df, events, marker, color, label):
+    """绘制交易标记的通用函数"""
+    if events.empty:
+        return
+
+  
+    event_indices = []
+    event_prices = []
+    
+    for timestamp, price in zip(events.index, events['price']):
+        timestamp = pd.to_datetime(timestamp).tz_localize("UTC")
+        
+        if timestamp < df.index.min() or timestamp > df.index.max():
+            pass
+        else:
+            position = df.index.get_indexer([timestamp], method="nearest")[0]
+            event_indices.append(position)
+            event_prices.append(price)
+            # 打印信息
+            print(f"{timestamp} | {price:.2f} | {label}")
+    
+    if event_indices:
+        ax.scatter(
+            event_indices,
+            event_prices,
+            marker=marker,
+            color=color,
+            s=120,
+            edgecolors='white',
+            zorder=10,
+            label=label
+        )
 def plot_trading_data(df, trade_data, args):
     """绘制K线图并标记交易点位"""
     plt.style.use('dark_background') 
@@ -206,7 +236,7 @@ def plot_trading_data(df, trade_data, args):
     df = df.copy()
     
     # Make sure all timestamps are in UTC and properly localized
-    df.index = pd.to_datetime(df.index)
+    df.index = pd.to_datetime(df.index, utc=True)
     print(df.index)
     
     fig, axes = mpf.plot( 
@@ -219,69 +249,46 @@ def plot_trading_data(df, trade_data, args):
         figratio=(14, 7),
         figscale=1.2,
         returnfig=True,
-        xrotation=0  # Keep default rotation to preserve date formatting
+        xrotation=45
     )
     
     ax1 = axes[0]
     
-    # 标记 Open Long（绿色三角）
-    # if not trade_data['open_long_events'].empty:
-    #     trade_data['open_long_events'].index = pd.to_datetime(trade_data['open_long_events'].index)
-    #     ax1.scatter(
-    #         trade_data['open_long_events'].index,
-    #         trade_data['open_long_events']['price'],
-    #         marker='^',
-    #         color='#00FF7F',  # 绿色
-    #         s=120,
-    #         edgecolors='white',
-    #         zorder=10,
-    #         label='Buy (Open Long)'
-    #     )
+    plot_trading_markers(
+        ax1, 
+        df, 
+        trade_data['open_long_events'], 
+        marker='^', 
+        color='#00FF7F', 
+        label='Buy (Open Long)'
+    )
 
-    # 标记 Close Short（橙色三角）
-    # if not trade_data['close_short_events'].empty:
-    #     print(trade_data['close_short_events'].index[0])
-    #     ax1.scatter(
-    #         trade_data['close_short_events'].index,
-    #         trade_data['close_short_events']['price'],
-    #         marker='^',
-    #         color='#FFA500',  # 橙色
-    #         s=120,
-    #         edgecolors='white',
-    #         zorder=10,
-    #         label='Buy to Close Short'
-    #     )
-    test_time = pd.to_datetime('2023-05-05 09:00:00')
-    ax1.axvline(test_time, color='red', linestyle='--', linewidth=1, zorder=20)
+    plot_trading_markers(
+        ax1, 
+        df, 
+        trade_data['close_short_events'], 
+        marker='^', 
+        color='#FFA500', 
+        label='Buy to Close Short'
+    )
 
-    # # 标记 Close Long（红色倒三角）
-    if not trade_data['close_long_events'].empty:
-        trade_data['close_long_events'].index = pd.to_datetime(trade_data['close_long_events'].index, format='%Y-%m-%d %H:%M:%S')
-        print("xxxxxxxxxx")
-        print(trade_data['close_long_events'].index)
-        ax1.scatter(
-            trade_data['close_long_events'].index,
-            trade_data['close_long_events']['price'],
-            marker='v',
-            color='#FF6347',  # 红色
-            s=120,
-            edgecolors='white',
-            zorder=10,
-            label='Sell to Close Long'
-        )
+    plot_trading_markers(
+        ax1, 
+        df, 
+        trade_data['close_long_events'], 
+        marker='v', 
+        color='#FF6347', 
+        label='Sell to Close Long'
+    )
 
-    # # 标记 Open Short（蓝色倒三角）
-    # if not trade_data['open_short_events'].empty:
-    #     ax1.scatter(
-    #         trade_data['open_short_events'].index,
-    #         trade_data['open_short_events']['price'],
-    #         marker='v',
-    #         color='#1E90FF',  # 蓝色
-    #         s=120,
-    #         edgecolors='white',
-    #         zorder=10,
-    #         label='Sell (Open Short)'
-    #     )
+    plot_trading_markers(
+        ax1, 
+        df, 
+        trade_data['open_short_events'], 
+        marker='v', 
+        color='#1E90FF', 
+        label='Sell (Open Short)'
+    )
     
     # 添加图例
     ax1.legend(loc='best') 
@@ -307,7 +314,6 @@ def plot_trading_data(df, trade_data, args):
         bbox=dict(boxstyle='round', facecolor='#1f1f1f', alpha=0.9, edgecolor='#444')
     )
     
-    # 格式化日期
     fig.autofmt_xdate() 
     
     # 添加网格
@@ -344,7 +350,7 @@ if __name__ == "__main__":
     print("="*60 + "\n")
     
     # 获取数据
-    trades = get_hyperliquid_trades(args.address,  args.symbol) 
+    trades = get_hyperliquid_trades(args.address,  args.symbol, args.time_range) 
     df = get_binance_klines(args.symbol,  args.interval,  args.time_range) 
     
     if not trades:

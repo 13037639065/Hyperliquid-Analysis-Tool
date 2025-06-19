@@ -10,11 +10,21 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            "args": ["-s", "BTC"]
+        },
+        {
+            "name": "Python trade_analysis.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/trade_analysis.py",
+            "console": "integratedTerminal",
             "args": [
-                "0x1f250df59a777d61cb8bd043c12970f3afe4f925", // address
-                "BTC", // 代币名称
-                "1h", // 时间间隔
-                "30d", // 时间范围
+                "--csv_file", "${workspaceFolder}/trading_data_cache/fills/2025_06_17T00_09_07_ETH_trade_data.csv",
+                "--buy_start_time", "2025-06-17T06:44:00",
+                "--buy_end_time", "2025-06-17T10:51:00",
+                "--sell_start_time", "2025-06-17T10:56:00",
+                "--sell_end_time", "2025-06-17T012:17:00",
+                "--min_trade_value", "10000"
             ]
         }
     ]
