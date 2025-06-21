@@ -19,12 +19,11 @@
             "program": "${workspaceFolder}/trade_analysis.py",
             "console": "integratedTerminal",
             "args": [
-                "--csv_file", "${workspaceFolder}/trading_data_cache/fills/2025_06_17T00_09_07_ETH_trade_data.csv",
-                "--buy_start_time", "2025-06-17T06:44:00",
-                "--buy_end_time", "2025-06-17T10:51:00",
-                "--sell_start_time", "2025-06-17T10:56:00",
-                "--sell_end_time", "2025-06-17T012:17:00",
-                "--min_trade_value", "10000"
+                "--buy_start_time", "2025-06-10T09:55:00",
+                "--buy_end_time", "2025-06-20T15:11:00",
+                "--sell_start_time", "2025-06-20T16:15:00",
+                "--sell_end_time", "2025-06-20T16:43:00",
+                "--min_trade_value", "0"
             ]
         }
     ]
