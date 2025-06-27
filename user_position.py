@@ -46,7 +46,7 @@ def difference(last, now):
             elif previous_size == 0.0 and current_size != 0.0:
                 operation = "开仓🟢"
             elif (previous_size > 0 and current_size < 0) or (previous_size < 0 and current_size > 0):
-                operation = "反手◀▶"
+                operation = "反手🟡"
             else:
                 if abs(current_size) > abs(previous_size):
                     operation = f"⏫{diff}"
