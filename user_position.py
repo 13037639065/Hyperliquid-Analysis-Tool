@@ -10,8 +10,56 @@ DATA_DIR = "trading_data_cache"
 # Initialize info object
 info = Info(constants.MAINNET_API_URL, skip_ws=False)
 
+def difference(last, now):
+    if last is None:
+        return
+    
+    # 从results中提取地址和对应的索引
+    address_to_index = {row[0]: idx for idx, row in enumerate(last.values.tolist()) if idx > 0}
+    
+    # 遍历当前结果中的每一行（每个地址）
+    for i, row in now.iterrows():
+        if i == 0:  # 跳过标题行
+            continue
+        
+        address = row[0]
+        if address not in address_to_index:
+            print(f"New address detected: {address}")
+            continue
+        
+        # 获取上一次的索引
+        last_idx = address_to_index[address]
+        
+        for j in range(1, len(row)):
+            current_pos = now.iloc[i, j] if isinstance(now.iloc[i, j], tuple) else (0.0, 0.0)
+            previous_pos = last.iloc[last_idx, j] if isinstance(last.iloc[last_idx, j], tuple) else (0.0, 0.0)
+            
+            current_size, current_entry, _ = current_pos
+            previous_size, previous_entry, _ = previous_pos
+            
+            # 检测操作类型
+            diff = round(abs(current_size - previous_size), 4)
+            if current_size == previous_size:
+                operation = ""
+            elif previous_size != 0 and current_size == 0.0:
+                operation = "平仓🔴"
+            elif previous_size == 0.0 and current_size != 0.0:
+                operation = "开仓🟢"
+            elif (previous_size > 0 and current_size < 0) or (previous_size < 0 and current_size > 0):
+                operation = "反手◀▶"
+            else:
+                if abs(current_size) > abs(previous_size):
+                    operation = f"⏫{diff}"
+                else:
+                    operation = f"⏬{diff}"
+
+            
+            now.iat[i, j] = (current_size, current_entry, operation)
+
 def monitor_positions(symbols, addresses):
     """Monitor positions for specified token and detect changes"""
+
+    last = None
     while True:
         # Check for each address
         # users_positions
@@ -40,9 +88,9 @@ def monitor_positions(symbols, addresses):
                 if position_found:
                     szi = float(position_found['position']['szi'])  # 假设 size 表示持仓比例
                     entryPx = float(position_found['position']['entryPx'])
-                    position_ratio = (szi, entryPx)
+                    position_ratio = (szi, entryPx, "unknown")
                 else:
-                    position_ratio = 0.0
+                    position_ratio = (0, 0, "空仓")
                 row.append(position_ratio)
             results.append(row)
 
@@ -50,8 +98,13 @@ def monitor_positions(symbols, addresses):
         print("===============================================================================")
         date_time_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
         print(f"position: {date_time_str}")
+        
+        df_result = pd.DataFrame(results)
+        difference(last, df_result)
         with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
-            print(pd.DataFrame(results))
+            print(df_result)
+
+        last = df_result
 
         time.sleep(1)
 
