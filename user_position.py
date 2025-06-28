@@ -1,14 +1,11 @@
 import argparse
 import time
-import csv
 import pandas as pd
 from hyperliquid.info import Info
 from hyperliquid.utils import constants
-
+import threading
 SYMBOLS = ['BTC', 'ETH', 'SOL']
-DATA_DIR = "trading_data_cache"
-# Initialize info object
-info = Info(constants.MAINNET_API_URL, skip_ws=False)
+
 
 def difference(last, now):
     if last is None:
@@ -60,15 +57,22 @@ def monitor_positions(symbols, addresses):
     """Monitor positions for specified token and detect changes"""
 
     last = None
+    info = Info(constants.MAINNET_API_URL, skip_ws=True)
     while True:
         # Check for each address
         # users_positions
         users_positions = {}
         
-        for address in addresses:
-            # Get user's fills and positions
-            positions = info.user_state(address)
-            users_positions[address] = positions
+        try:
+            for address in addresses:
+                # Get user's fills and positions
+                positions = info.user_state(address)
+                users_positions[address] = positions
+        except Exception as e:
+            print(f"Error: {e}")
+            # 网络错误的图标
+            print("network error! ⛔")
+            continue
     
         results = []
         row = []
@@ -117,4 +121,7 @@ if __name__ == "__main__":
         addresses = [line.strip() for line in f.readlines()]
     
     print(f"开始实时监控 {addresses} {SYMBOLS} 持仓...")
-    monitor_positions(SYMBOLS, addresses)
+    try:
+        monitor_positions(SYMBOLS, addresses)
+    except KeyboardInterrupt:
+        print("用户退出")
