@@ -8,7 +8,7 @@ from hyperliquid.utils import constants
 SYMBOLS = ['BTC', 'ETH', 'SOL']
 DATA_DIR = "trading_data_cache"
 # Initialize info object
-info = Info(constants.MAINNET_API_URL, skip_ws=False)
+info = Info(constants.MAINNET_API_URL, skip_ws=True)
 
 def difference(last, now):
     if last is None:
@@ -103,6 +103,39 @@ def monitor_positions(symbols, addresses):
         difference(last, df_result)
         with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
             print(df_result)
+
+        # 检测持仓方向一致性
+        for col_idx in range(1, len(df_result.columns)):
+            coin_positions = df_result.iloc[1:, col_idx]  # 跳过标题行
+            non_zero_positions = [pos for pos in coin_positions if pos[0] != 0.0]  # 过滤空仓
+            
+            if len(non_zero_positions) < 2:
+                continue  # 至少需要两个非空仓仓位才能判断一致性
+            
+            # 检查所有非空仓仓位是否方向一致
+            all_long = all(pos[0] > 0 for pos in non_zero_positions)
+            all_short = all(pos[0] < 0 for pos in non_zero_positions)
+            
+            if all_long or all_short:
+                direction = "多头" if all_long else "空头"
+                print(f"{date_time_str}\n⚠️ 警报: {df_result.columns[col_idx]} 币种所有非空仓仓位均为{direction}方向\n{df_result}")
+
+        # 检测反手开仓
+        for col_idx in range(1, len(df_result.columns)):
+            current_coin_positions = df_result.iloc[1:, col_idx]
+            
+            count = 0
+            
+            for i in range(len(current_coin_positions)):
+                current_pos = current_coin_positions.iloc[i]
+                
+                # 检查是否有反手操作标记
+                if isinstance(current_pos, tuple) and len(current_pos) >= 3 and current_pos[2] in ["反手🟡"]:
+                    count += 1
+            
+            if count > 2:
+                # 发现多个用户在 coin 上反手操作
+                print(f"发现{count}个用户在{df_result.columns[col_idx]}同时反手操作\n{df_result}")
 
         last = df_result
 
