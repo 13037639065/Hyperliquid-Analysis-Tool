@@ -4,6 +4,7 @@ import csv
 import pandas as pd
 from hyperliquid.info import Info
 from hyperliquid.utils import constants
+from feishu_msg import send_feishu_text
 
 SYMBOLS = ['BTC', 'ETH', 'SOL']
 DATA_DIR = "trading_data_cache"
@@ -118,7 +119,7 @@ def monitor_positions(symbols, addresses):
             
             if all_long or all_short:
                 direction = "多头" if all_long else "空头"
-                print(f"{date_time_str}\n⚠️ 警报: {df_result.columns[col_idx]} 币种所有非空仓仓位均为{direction}方向\n{df_result}")
+                send_feishu_text("", f"{date_time_str}\n⚠️ 警报: {df_result.columns[col_idx]} 币种所有非空仓仓位均为{direction}方向\n{df_result}")
 
         # 检测反手开仓
         for col_idx in range(1, len(df_result.columns)):
@@ -135,7 +136,7 @@ def monitor_positions(symbols, addresses):
             
             if count > 2:
                 # 发现多个用户在 coin 上反手操作
-                print(f"发现{count}个用户在{df_result.columns[col_idx]}同时反手操作\n{df_result}")
+                send_feishu_text("", f"发现{count}个用户在{df_result.columns[col_idx]}同时反手操作\n{df_result}")
 
         last = df_result
 
