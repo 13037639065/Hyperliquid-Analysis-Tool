@@ -109,7 +109,7 @@ def monitor_positions(symbols, addresses):
         for col_idx in range(1, len(df_result.columns)):
             coin_positions = df_result.iloc[1:, col_idx]  # 跳过标题行
             non_zero_positions = [pos for pos in coin_positions if pos[0] != 0.0]  # 过滤空仓
-            
+            coin = df_result.iloc[0, col_idx]
             if len(non_zero_positions) < 2:
                 continue  # 至少需要两个非空仓仓位才能判断一致性
             
@@ -119,12 +119,12 @@ def monitor_positions(symbols, addresses):
             
             if all_long or all_short:
                 direction = "全多" if all_long else "全空"
-                send_feishu_text("", f"日期: {date_time_str}\n警报: {df_result.columns[col_idx]} {direction}\n {df_result.iloc[0, col_idx]}")
+                send_feishu_text("", f"日期: {date_time_str}\n警报: {coin} {direction}\n {df_result.iloc[0:, col_idx]}")
 
         # 检测反手开仓
         for col_idx in range(1, len(df_result.columns)):
             current_coin_positions = df_result.iloc[1:, col_idx]
-            
+            coin = df_result.iloc[0, col_idx]
             count = 0
             
             for i in range(len(current_coin_positions)):
@@ -135,7 +135,7 @@ def monitor_positions(symbols, addresses):
                     count += 1
             
             if count >= 2:
-                send_feishu_text("", f"日期: {date_time_str}\n{df_result.columns[col_idx]} 多人反手操作\n{df_result.iloc[0, col_idx]}")
+                send_feishu_text("", f"日期: {date_time_str}\n{coin}-{count}多人反手操作\n{df_result.iloc[0:, col_idx]}")
 
         last = df_result
 
