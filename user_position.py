@@ -118,8 +118,8 @@ def monitor_positions(symbols, addresses):
             all_short = all(pos[0] < 0 for pos in non_zero_positions)
             
             if all_long or all_short:
-                direction = "多头" if all_long else "空头"
-                send_feishu_text("", f"{date_time_str}\n⚠️ 警报: {df_result.columns[col_idx]} 币种所有非空仓仓位均为{direction}方向\n{df_result}")
+                direction = "全多" if all_long else "全空"
+                send_feishu_text("", f"日期: {date_time_str}\n警报: {df_result.columns[col_idx]} {direction}\n {df_result.iloc[0, col_idx]}")
 
         # 检测反手开仓
         for col_idx in range(1, len(df_result.columns)):
@@ -134,9 +134,8 @@ def monitor_positions(symbols, addresses):
                 if isinstance(current_pos, tuple) and len(current_pos) >= 3 and current_pos[2] in ["反手🟡"]:
                     count += 1
             
-            if count > 2:
-                # 发现多个用户在 coin 上反手操作
-                send_feishu_text("", f"发现{count}个用户在{df_result.columns[col_idx]}同时反手操作\n{df_result}")
+            if count >= 2:
+                send_feishu_text("", f"日期: {date_time_str}\n{df_result.columns[col_idx]} 多人反手操作\n{df_result.iloc[0, col_idx]}")
 
         last = df_result
 
