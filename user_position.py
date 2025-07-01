@@ -61,12 +61,12 @@ _prev_states = {}
 def alert_filter(symbol, dir, msg):
     global _prev_states
 
-    last_dir = _prev_states.get(symbol, None)
+    last_dir = _prev_states.get(symbol, "opposite")
     
     # 检测到新的持仓方向变化
-    if last_dir != dir and dir in ["LONG", "SHORT"]:
-        send_feishu_text("方向一致报警", msg)
-       
+    if last_dir != dir:
+        send_feishu_text(f"{symbol} 一致报警 {last_dir} - > {dir}", msg)
+  
     _prev_states[symbol] = dir
 
 
@@ -140,7 +140,7 @@ def monitor_positions(symbols, addresses):
             elif all(pos[0] < 0 for pos in non_zero_positions):
                 direction = 'SHORT'
             else:
-                direction = ""
+                direction = "opposite"
             
             alert_filter(coin, direction, f"日期: {date_time_str}\n警报: {coin} {direction}\n {df_result.iloc[0:, col_idx]}")
 
