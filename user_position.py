@@ -65,7 +65,7 @@ def alert_filter(symbol, dir, msg):
     
     # 检测到新的持仓方向变化
     if last_dir != dir and dir in ["LONG", "SHORT"]:
-        send_feishu_text("", msg)
+        send_feishu_text("方向一致报警", msg)
        
     _prev_states[symbol] = dir
 
@@ -158,7 +158,7 @@ def monitor_positions(symbols, addresses):
                     count += 1
             
             if count > 2:
-                send_feishu_text("", f"日期: {date_time_str}\n{coin}-{count}多人反手操作\n{df_result.iloc[0:, col_idx]}")
+                send_feishu_text("多人反手报警", f"日期: {date_time_str}\n{coin}-{count}多人反手操作\n{df_result.iloc[0:, col_idx]}")
 
         last = df_result
 
