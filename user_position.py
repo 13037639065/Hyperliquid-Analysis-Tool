@@ -64,7 +64,10 @@ def alert_filter(symbol, dir, msg):
     last_dir = _prev_states.get(symbol, None)
     
     # 检测到新的持仓方向变化
-    if last_dir != dir and dir in ["LONG", "SHORT"]:
+    if last_dir != dir and last_dir not in ["LONG", "SHORT"] and dir in ["LONG", "SHORT"]:
+        send_feishu_text(f"{symbol} 一致报警", msg)
+    
+    if last_dir != dir and dir not in ["LONG", "SHORT"]:
         send_feishu_text("方向一致报警", msg)
        
     _prev_states[symbol] = dir
