@@ -56,6 +56,20 @@ def difference(last, now):
             
             now.iat[i, j] = (current_size, current_entry, operation)
 
+
+_prev_states = {}
+def alert_filter(symbol, dir, msg):
+    global _prev_states
+
+    last_dir = _prev_states.get(symbol, None)
+    
+    # 检测到新的持仓方向变化
+    if last_dir != dir and dir in ["LONG", "SHORT"]:
+        send_feishu_text("", msg)
+       
+    _prev_states[symbol] = dir
+
+
 def monitor_positions(symbols, addresses):
     """Monitor positions for specified token and detect changes"""
 
@@ -120,12 +134,15 @@ def monitor_positions(symbols, addresses):
                 continue  # 至少需要两个非空仓仓位才能判断一致性
             
             # 检查所有非空仓仓位是否方向一致
-            all_long = all(pos[0] > 0 for pos in non_zero_positions)
-            all_short = all(pos[0] < 0 for pos in non_zero_positions)
+            direction = ""
+            if all(pos[0] > 0 for pos in non_zero_positions):
+                direction = 'LONG'
+            elif all(pos[0] < 0 for pos in non_zero_positions):
+                direction = 'SHORT'
+            else:
+                direction = ""
             
-            if all_long or all_short:
-                direction = "全多" if all_long else "全空"
-                send_feishu_text("", f"日期: {date_time_str}\n警报: {coin} {direction}\n {df_result.iloc[0:, col_idx]}")
+            alert_filter(coin, direction, f"日期: {date_time_str}\n警报: {coin} {direction}\n {df_result.iloc[0:, col_idx]}")
 
         # 检测反手开仓
         for col_idx in range(1, len(df_result.columns)):
@@ -140,7 +157,7 @@ def monitor_positions(symbols, addresses):
                 if isinstance(current_pos, tuple) and len(current_pos) >= 3 and current_pos[2] in ["反手🟡"]:
                     count += 1
             
-            if count >= 2:
+            if count > 2:
                 send_feishu_text("", f"日期: {date_time_str}\n{coin}-{count}多人反手操作\n{df_result.iloc[0:, col_idx]}")
 
         last = df_result
