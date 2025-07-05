@@ -1,14 +1,13 @@
 from binance import Client
-from hyperliquid.info  import Info
-from hyperliquid.utils  import constants
 import time
 import os
+import json
+import websocket
 
-info = Info(constants.MAINNET_API_URL, skip_ws=True)
-binance_client = Client(api_key=os.environ.get("binance_api_key"), api_secret=os.environ.get("binance_api_secret"))
-target_address = os.environ.get("target_address")
 
-DRY_RUN = True
+DRY_RUN = True # 模拟交易
+FACTOR  = 1  # 仓位占比
+LEVERAGE = 100
 
 symbol_mapping = {
     "BTC": "BTCUSDC",
@@ -16,102 +15,134 @@ symbol_mapping = {
     "SOL": "SOLUSDC"
 }
 
-def place_proportional_orders(open_orders):
-    # 获取账户信息
-    account_info = binance_client.futures_account() 
-    usdc_balance = next(
-        (asset for asset in account_info["assets"] if asset["asset"] == "USDC"),
-        {"availableBalance": "0.0", "marginBalance": "0.0"}
-    )
-    print(f"可用余额: {usdc_balance['availableBalance']} USDC")
-    print(f"抵押余额: {usdc_balance['marginBalance']} USDC")
-    
-    
-    # 按代币分组订单
-    orders_by_coin = {}
-    for order in open_orders:
-        coin = order['coin']
-        if coin not in orders_by_coin:
-            orders_by_coin[coin] = []
-        orders_by_coin[coin].append(order)
-    
-    # 计算每个代币的总持仓量
-    position_sizes = {}
-    for coin, orders in orders_by_coin.items():
-        total_size = sum(float(order['sz']) for order in orders)
-        position_sizes[coin] = total_size
-    
-    # 获取当前价格
-    tickers = binance_client.get_symbol_ticker()
-    price_map = {ticker['symbol']: float(ticker['price']) for ticker in tickers}
-    
-    # 计算每个代币的总价值
-    position_values = {}
-    for coin, size in position_sizes.items():
-        symbol = symbol_mapping.get(coin)
-        if symbol in price_map:
-            value = size * price_map[symbol]
-            position_values[coin] = value
-    
-    # 计算每个代币的资金分配比例
-    total_portfolio_value = sum(position_values.values())
-    allocation_ratios = {coin: value/total_portfolio_value for coin, value in position_values.items()}
-    
-    # 获取可用余额
-    available_balance = float(account_info['availableBalance'])
-    
-    # 为每个订单下单
-    placed_orders = []
-    for order in open_orders:
-        coin = order['coin']
-        symbol = symbol_mapping.get(coin)
-        if not symbol:
-            continue
-        
-        # 获取订单参数
-        limit_price = float(order['limitPx'])
-        original_size = float(order['sz'])
-        
-        # 计算按比例的订单大小
-        portfolio_ratio = allocation_ratios[coin]
-        proportional_size = (available_balance * portfolio_ratio) / limit_price
-        
-        # 创建订单参数
-        params = {
-            "symbol": symbol,
-            "side": "SELL" if order['side'] == "A" else "BUY",
-            "type": "LIMIT",
-            "timeInForce": "GTC",
-            "quantity": f"{proportional_size:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{proportional_size:.{8}f}" else f"{proportional_size:.{8}f}",
-            "price": f"{limit_price:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{limit_price:.{8}f}" else f"{limit_price:.{8}f}",
-        }
-        
-        try:
-            if DRY_RUN:
-                print(f"Dry run: Would place order: {params}")
-            else:
-                response = binance_client.create_order(**params)
-                placed_orders.append({
-                    "original_order": order,
-                    "proportional_params": params,
-                    "binance_response": response
-                })
-        except Exception as e:
-            print(f"Failed to place order for {symbol}: {e}")
-            continue
-    
-    return placed_orders
-
-
-def main():
-    poll_interval = 3
-    while True:
-        try:
-            open_odrders = info.open_orders(target_address)
-            place_proportional_orders(open_odrders)
-        except Exception as e:
-            print(f"获取交易记录失败: {e}")
-        time.sleep(poll_interval) 
-
 if __name__ == "__main__":
-    main()
+    order_id_map = {}
+    
+    binance_client = Client(api_key=os.environ.get("BINANCE_API_KEY"), api_secret=os.environ.get("BINANCE_API_SECRET"))
+    def on_message(ws, message):
+        try:
+            data = json.loads(message)
+            
+            if isinstance(data, dict) and data.get('channel') == 'orderUpdates':
+                for update in data.get('data', []):
+                    order = update.get('order')
+                    coin = order.get('coin')
+                    side = order.get('side')
+                    limit_price = float(order.get('limitPx', 0))
+                    size = float(order.get('sz', 0))
+                    order_id = order.get('oid')
+
+                    action = update.get('status')  # canceled open 
+                    
+                    if action == "open":
+                        # 处理订单
+                        symbol = symbol_mapping.get(coin)
+                        if not symbol or size <= 0 or limit_price <= 0:
+                            continue
+                        
+                        # 计算按比例缩小的订单数量
+                        proportional_size = size * FACTOR
+                        
+                        # 获取市场信息以确保数量符合交易所要求
+                        exchange_info = binance_client.futures_exchange_info()
+                        symbol_info = next((s for s in exchange_info['symbols'] if s['symbol'] == symbol), None)
+                        if not symbol_info:
+                            print(f"Symbol info not found for {symbol}")
+                            continue
+                        
+                        # 设置杠杆
+                        try:
+                            binance_client.futures_change_leverage(symbol=symbol, leverage=LEVERAGE)
+                        except Exception as e:
+                            print(f"Failed to set leverage for {symbol}: {e}")
+                            continue
+                        
+                        # 确保数量符合交易所最小交易单位要求
+                        lot_size = next((f for f in symbol_info['filters'] if f['filterType'] == 'LOT_SIZE'), None)
+                        if lot_size:
+                            min_qty = float(lot_size['minQty'])
+                            step_size = float(lot_size['stepSize'])
+                            # 调整数量到最近的有效值
+                            proportional_size = max(min_qty, proportional_size - (proportional_size % step_size))
+                        
+                        # 创建订单参数
+                        params = {
+                            "symbol": symbol,
+                            "side": "SELL" if side == "A" else "BUY",
+                            "type": "LIMIT",
+                            "timeInForce": "GTC",  # 持续有效
+                            "quantity": f"{proportional_size:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{proportional_size:.{8}f}" else f"{proportional_size:.{8}f}",
+                            "price": f"{limit_price:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{limit_price:.{8}f}" else f"{limit_price:.{8}f}",
+                            "newClientOrderId": f"HL_{order_id}"  # 使用Hyperliquid订单ID作为客户端订单ID
+                        }
+                        
+                        # 检查订单是否已存在
+                        existing_orders = binance_client.futures_get_open_orders(symbol=symbol)
+                        existing_order = None
+                        for eo in existing_orders:
+                            if (
+                                eo['side'] == params['side'] and
+                                abs(float(eo['price']) - limit_price) < 1e-6 and
+                                abs(float(eo['origQty']) - proportional_size) < 1e-6
+                            ):
+                                existing_order = eo
+                                break
+                        
+                        if existing_order:
+                            # 更新现有订单
+                            print(f"Order exists: {existing_order['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
+                            # 更新订单映射
+                            order_id_map[order_id] = existing_order['orderId']
+                        else:
+                            # 创建新订单
+                            response = binance_client.create_order(**params)
+                            print(f"Created new order: {response['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
+                            # 存储订单映射
+                            order_id_map[order_id] = response['orderId']
+                    
+                    # 如果是取消订单
+                    elif action == 'canceled':
+                        # 检查是否存在订单映射
+                        if order_id in order_id_map:
+                            binance_order_id = order_id_map[order_id]
+                            symbol = symbol_mapping.get(coin)
+                            if not symbol:
+                                continue
+                            
+                            try:
+                                # 取消订单
+                                binance_client.futures_cancel_order(
+                                    symbol=symbol,
+                                    orderId=binance_order_id
+                                )
+                                print(f"Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
+                                # 从映射中移除已取消的订单
+                                del order_id_map[order_id]
+                            except Exception as e:
+                                print(f"Failed to cancel order {binance_order_id} for {symbol}: {e}")
+                        else:
+                            print(f"No corresponding order found for Hyperliquid order ID: {order_id}")
+                    else:
+                        print("=============================================================================")
+                        print(f"Unknown status: {action}")
+                        print(update)
+                        print("=============================================================================")
+        except Exception as e:
+            print(f"Error processing message: {e}")
+
+    def on_open(ws):
+            # 订阅用户事件，替换为实际的用户地址
+        target_address = os.environ.get('target_address')
+        subscription_msg = {
+            "method": "subscribe",
+            "subscription": {
+                "type": "orderUpdates",
+                "user": target_address
+            }
+        }
+        ws.send(json.dumps(subscription_msg))
+        print(f"Subscribed to user events for {target_address}")
+    
+    websocket_url = "wss://api.hyperliquid.xyz/ws"
+    ws = websocket.WebSocketApp(websocket_url, on_message=on_message, on_open=on_open)
+    ws.run_forever(ping_interval=30, ping_timeout=10, reconnect=10)
