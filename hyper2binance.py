@@ -19,7 +19,7 @@ symbol_mapping = {
 if __name__ == "__main__":
     order_id_map = {}
     
-    binance_client = CMFutures(api_key=os.environ.get("binance_api_key"), api_secret=os.environ.get("binance_api_secret"))
+    binance_client = CMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
     def on_message(ws, message):
         try:
             data = json.loads(message)
