@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
                     
         except Exception as e:
-            hyper_log(e, "error")
+            hyper_log(str(e), "error")
 
     def on_open(ws):
             # 订阅用户事件，替换为实际的用户地址
