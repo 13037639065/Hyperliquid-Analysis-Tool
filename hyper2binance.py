@@ -104,8 +104,7 @@ if __name__ == "__main__":
                             response = binance_client.new_order(**params)
                             order_id_map[order_id] = int(response['orderId'])
                         else:
-                            response['orderId'] = str(uuid.uuid4())
-                            order_id_map[order_id] = response['orderId']
+                            order_id_map[order_id] = str(uuid.uuid4())
                     
                     # 如果是取消订单
                     elif action == 'canceled':
