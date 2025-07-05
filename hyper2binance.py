@@ -15,6 +15,16 @@ symbol_mapping = {
     "SOL": ("SOLUSDC", 20, 500)
 }
 
+def hyper_log(message, level="info"):
+    color_code = {
+        "info": "\033[92m",   # 绿色 
+        "warning": "\033[93m",# 黄色 
+        "error": "\033[91m"   # 红色 
+    }.get(level.lower(),  "\033[0m")  # 默认无色 
+    
+    reset_code = "\033[0m"
+    print(f"{color_code}[{level.upper()}]  {message}{reset_code}")
+
 if __name__ == "__main__":
     order_id_map = {}
     
@@ -54,13 +64,13 @@ if __name__ == "__main__":
                         # 获取市场信息以确保数量符合交易所要求
                         symbol_info = next((s for s in exchange_info['symbols'] if s['symbol'] == symbol), None)
                         if not symbol_info:
-                            print(f"Symbol info not found for {symbol}")
+                            hyper_log(f"Symbol info not found for {symbol}", "error")
                             continue
                         
                         try:
                             binance_client.change_leverage(symbol=symbol, leverage=LEVERAGE)
                         except Exception as e:
-                            print(f"Failed to set leverage for {symbol}: {e}")
+                            hyper_log(f"Failed to set leverage for {symbol}: {e}", "error")
                             continue
                         
                         # 确保数量符合交易所最小交易单位要求
@@ -82,12 +92,12 @@ if __name__ == "__main__":
                             "newClientOrderId": f"HL_{order_id}"  # 使用Hyperliquid订单ID作为客户端订单ID
                         }
                         
-                        print(f"Created new order: {response['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
+                        hyper_log(f"Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
 
                         if not DRY_RUN:
                             response = binance_client.new_order(**params)
-                        # 存储订单映射
-                        order_id_map[order_id] = response['orderId']
+                            order_id_map[order_id] = response['orderId']
+                            hyper_log(order_id_map)
                     
                     # 如果是取消订单
                     elif action == 'canceled':
