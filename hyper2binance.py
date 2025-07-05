@@ -151,16 +151,18 @@ if __name__ == "__main__":
             if not DRY_RUN:
                 open_orders = INFO.open_orders(USER_ADDRESS)
                 # 将数组中 open_orders 的 oid 提取成数组
-                open_order_ids = [order['oid'] for order in open_orders]
+                hids = [order['oid'] for order in open_orders]
                 # 遍历 order_id_map
                 for hid, bid in order_id_map.items():
-                    if bid not in open_order_ids:
+                    if hid not in hids:
+                        # 在open_orders找oid==hid的
+                        coin = [order for order in open_orders if order['oid'] == hid]['coin']
                         try:
-                            binance_client.cancel_order(symbol=order['symbol'], orderId=order_id)
+                            binance_client.cancel_order(symbol=symbol_mapping[coin][0], orderId=bid)
                             hyper_log("取消未完成订单: " + str(order))
                             del order_id_map[hid]
                         except Exception as e:
-                            hyper_log("取消订单失败: " + str(e), "error")
+                            hyper_log("取消订单失败: " + str(e), "warning")
                         
                         
             
