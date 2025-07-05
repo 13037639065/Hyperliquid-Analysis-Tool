@@ -7,7 +7,7 @@ import uuid
 from hyperliquid.info  import Info
 from hyperliquid.utils  import constants
 
-DRY_RUN = True # 模拟交易
+DRY_RUN = False # 模拟交易
 FACTOR  = 1  # 仓位占比
 LEVERAGE = 20
 USER_ADDRESS = os.environ.get('target_address')
@@ -176,7 +176,7 @@ if __name__ == "__main__":
                 hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]}), diff = {abs(diff)}")
                 hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}")
                 if abs(diff) > value[1]:
-                    hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}", "error")
+                    hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}", "warning")
 
                     
         except Exception as e:
