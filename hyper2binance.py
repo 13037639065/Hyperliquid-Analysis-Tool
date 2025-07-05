@@ -182,7 +182,7 @@ if __name__ == "__main__":
                 binance_sz = 0 if binance_position is None else float(binance_position['positionAmt'])
                 diff = hyper_sz - binance_sz * value[2]
                 dir = "多" if diff > 0 else "空"
-                sz = round(abs(diff), 3)
+                sz = round(abs(diff) / value[2], 3)
                 hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]}), diff = {abs(diff)}")
                 hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}")
                 if abs(diff) > value[1]:
