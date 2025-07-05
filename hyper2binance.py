@@ -170,14 +170,15 @@ if __name__ == "__main__":
                 hyper_position = next((p for p in hyper_positions['assetPositions'] if p['position']['coin'] == coin), None)
                 binance_position = next((p for p in binance_positions if p['symbol'] == symbol), None)
 
-                # hyper_position  为 None  hyper_sz = 0
                 hyper_sz = 0 if hyper_position is None else float( hyper_position['position']['szi'])
-                binance_sz = 0 if binance_position is None else float(binance_position['amount'])
+                binance_sz = 0 if binance_position is None else float(binance_position['positionAmt'])
                 diff = hyper_sz - binance_sz * value[2]
                 dir = "多" if diff > 0 else "空"
                 sz = round(abs(diff), 3)
                 hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]})")
                 hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}")
+                if diff > value[1]:
+                    hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}", "error")
 
                     
         except Exception as e:
