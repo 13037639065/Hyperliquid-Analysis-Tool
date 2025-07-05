@@ -23,6 +23,8 @@ if __name__ == "__main__":
     def on_message(ws, message):
         try:
             data = json.loads(message)
+
+            print(data)
             
             if isinstance(data, dict) and data.get('channel') == 'orderUpdates':
                 for update in data.get('data', []):
