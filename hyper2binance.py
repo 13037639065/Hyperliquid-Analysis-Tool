@@ -163,7 +163,6 @@ def main():
                             hyper_log("取消未完成订单: " + str(order))
                             del order_id_map[hid]
                         except Exception as e:
-                            print(e)
                             hyper_log("取消订单失败: " + str(e), "warning")
                         
             
@@ -185,10 +184,8 @@ def main():
                 if abs(diff) > value[1]:
                     hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}", "warning")
 
-
-                    
         except Exception as e:
-            hyper_log(str(e), "error")
+            hyper_log(f"on_message callback error: {e}", "error")
 
     def on_open(ws):
             # 订阅用户事件，替换为实际的用户地址
