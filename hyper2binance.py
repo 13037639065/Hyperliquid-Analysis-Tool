@@ -156,14 +156,18 @@ if __name__ == "__main__":
                 for hid, bid in order_id_map.items():
                     if hid not in hids:
                         # 在open_orders找oid==hid的
-                        coin = [order for order in open_orders if order['oid'] == hid][0]['coin']
+                        matched = [order for order in open_orders if order['oid'] == hid]
+                        if not matched:
+                            hyper_log(f"Order ID {hid} not found in open_orders", "error")
+                            continue
+                        coin = matched[0]['coin']
                         try:
                             binance_client.cancel_order(symbol=symbol_mapping[coin][0], orderId=bid)
                             hyper_log("取消未完成订单: " + str(order))
                             del order_id_map[hid]
                         except Exception as e:
+                            print(e)
                             hyper_log("取消订单失败: " + str(e), "warning")
-                        
                         
             
             # 检查币安持仓和hyper是否差一手，如果差了则市价补齐
