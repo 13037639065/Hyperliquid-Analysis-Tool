@@ -97,8 +97,7 @@ if __name__ == "__main__":
                             "symbol": symbol,
                             "side": "SELL" if side == "A" else "BUY",
                             "type": "LIMIT",
-                            "timeInForce": "GTC",
-                            "selfTradePreventionMode": "EXPIRE_TAKER",
+                            "timeInForce": "GTX",
                             "quantity": proportional_size,
                             "price": limit_price,
                         }

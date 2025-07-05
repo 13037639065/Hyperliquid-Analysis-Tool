@@ -6,8 +6,7 @@ params = {
     "symbol": "BTCUSDC",
     "side": "SELL",
     "type": "LIMIT",
-    "timeInForce": "GTC",
-    "selfTradePreventionMode": "EXPIRE_TAKER",
+    "timeInForce": "GTX",
     "quantity": 0.001,
     "price": 10000,
 }
