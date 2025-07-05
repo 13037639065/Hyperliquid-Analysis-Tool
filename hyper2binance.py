@@ -102,7 +102,7 @@ if __name__ == "__main__":
                         if not DRY_RUN:
                             response = binance_client.new_order(**params)
                             order_id_map[order_id] = response['orderId']
-                            hyper_log(order_id_map)
+                            hyper_log(json.dumps(order_id_map, indent=4))
                     
                     # 如果是取消订单
                     elif action == 'canceled':
