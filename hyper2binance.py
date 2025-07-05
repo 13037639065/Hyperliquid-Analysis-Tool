@@ -105,8 +105,11 @@ if __name__ == "__main__":
                         hyper_log(f"✅Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
 
                         if not DRY_RUN:
-                            response = binance_client.new_order(**params)
-                            order_id_map[order_id] = (symbol, response['orderId'])
+                            try:
+                                response = binance_client.new_order(**params)
+                                order_id_map[order_id] = (symbol, response['orderId'])
+                            except Exception as e:
+                                hyper_log(f"创建失败的订单: {str(e)}")
                         else:
                             order_id_map[order_id] = (symbol, uuid.uuid1())
                     
