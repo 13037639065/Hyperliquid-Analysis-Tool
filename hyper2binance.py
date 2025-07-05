@@ -163,19 +163,21 @@ if __name__ == "__main__":
             # 检查币安持仓和hyper是否差一手，如果差了则市价补齐
             hyper_positions = INFO.user_state(USER_ADDRESS)
             binance_positions = binance_client.get_position_risk()
-            # binance_positions = binance_client.get_position_mode
+            print("hyper_positions: ", json.dumps(hyper_positions, indent=4))
+            print("binance_positions: ", json.dumps(binance_positions, indent=4))
             for coin, value in symbol_mapping.items():
                 symbol = value[0]
                 hyper_position = next((p for p in hyper_positions['assetPositions'] if p['position']['coin'] == coin), None)
                 binance_position = next((p for p in binance_positions if p['symbol'] == symbol), None)
 
                 # hyper_position  为 None  hyper_sz = 0
-                hyper_sz = 0 if hyper_position is None else hyper_position['position']['szi']
+                hyper_sz = 0 if hyper_position is None else float( hyper_position['position']['szi'])
                 binance_sz = 0 if binance_position is None else float(binance_position['amount'])
                 diff = hyper_sz - binance_sz * value[2]
                 dir = "多" if diff > 0 else "空"
+                sz = round(abs(diff), 3)
                 hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]})")
-                hyper_log(f"{coin} 调整：需要开-{dir} 数量{diff / value[2]}")
+                hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}")
 
                     
         except Exception as e:
