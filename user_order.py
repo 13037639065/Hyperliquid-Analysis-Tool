@@ -1,10 +1,28 @@
 import websocket
 import json
+import csv
 
 def on_message(ws, message):
     data = json.loads(message)
-    print(json.dumps(data, indent=4))   
+    # 将 data
+    # 假设data是一个包含订单信息的字典列表，例如：
+    data = [
+        {
+            "coin": "ETH",
+            "side": "B",
+            "limitPx": "2512.0",
+            "sz": "6.8",
+            "oid": 109565004077,
+            "timestamp": 1751724620196,
+            "origSz": "6.8",
+            "cloid": "0x00000000000000000006392f2bb8515c",
+            "status": "canceled",
+            "statusTimestamp": 1751724620523
+        }
+    ]
 
+    # 调用函数保存数据到CSV文件
+    save_order_to_csv(data)
 
 def on_error(ws, error):
     print("Error:", error)
@@ -24,6 +42,18 @@ def on_open(ws):
     }
     ws.send(json.dumps(subscription_msg))
     print(f"Subscribed to user events for {user_address}")
+
+def save_order_to_csv(data, filename='order_data.csv'):
+    """将订单数据保存到CSV文件中"""
+    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        
+        # 写入表头
+        writer.writerow(data[0].keys())
+        
+        # 写入数据行
+        for order in data:
+            writer.writerow(order.values())
 
 if __name__ == "__main__":
     websocket_url = "wss://api.hyperliquid.xyz/ws"

@@ -7,12 +7,13 @@ import websocket
 
 DRY_RUN = True # 模拟交易
 FACTOR  = 1  # 仓位占比
-LEVERAGE = 100
+LEVERAGE = 20
 
+# hyper 转 币安symbol 和一手做单大小，缩小倍数
 symbol_mapping = {
-    "BTC": "BTCUSDC",
-    "ETH": "ETHUSDC",
-    "SOL": "SOLUSDC"
+    "BTC": ("BTCUSDC", 0.55, 500),
+    "ETH": ("ETHUSDC", 6.8, 500),
+    "SOL": ("SOLUSDC", 20, 500)
 }
 
 if __name__ == "__main__":
@@ -32,16 +33,19 @@ if __name__ == "__main__":
                     size = float(order.get('sz', 0))
                     order_id = order.get('oid')
 
-                    action = update.get('status')  # canceled open 
+                    # open, filled, canceled, triggered, rejected, marginCanceled
+                    action = update.get('status')  
                     
                     if action == "open":
                         # 处理订单
-                        symbol = symbol_mapping.get(coin)
+                        symbol = symbol_mapping.get(coin)[0]
                         if not symbol or size <= 0 or limit_price <= 0:
                             continue
                         
                         # 计算按比例缩小的订单数量
-                        proportional_size = size * FACTOR
+                        fac = symbol_mapping.get(coin)[2]
+                        # proportional_size 四舍五入保留三位小数
+                        proportional_size = round(size / fac, 3)
                         
                         # 获取市场信息以确保数量符合交易所要求
                         exchange_info = binance_client.futures_exchange_info()
@@ -50,7 +54,6 @@ if __name__ == "__main__":
                             print(f"Symbol info not found for {symbol}")
                             continue
                         
-                        # 设置杠杆
                         try:
                             binance_client.futures_change_leverage(symbol=symbol, leverage=LEVERAGE)
                         except Exception as e:
@@ -76,36 +79,19 @@ if __name__ == "__main__":
                             "newClientOrderId": f"HL_{order_id}"  # 使用Hyperliquid订单ID作为客户端订单ID
                         }
                         
-                        # 检查订单是否已存在
-                        existing_orders = binance_client.futures_get_open_orders(symbol=symbol)
-                        existing_order = None
-                        for eo in existing_orders:
-                            if (
-                                eo['side'] == params['side'] and
-                                abs(float(eo['price']) - limit_price) < 1e-6 and
-                                abs(float(eo['origQty']) - proportional_size) < 1e-6
-                            ):
-                                existing_order = eo
-                                break
-                        
-                        if existing_order:
-                            # 更新现有订单
-                            print(f"Order exists: {existing_order['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
-                            # 更新订单映射
-                            order_id_map[order_id] = existing_order['orderId']
-                        else:
-                            # 创建新订单
+                        print(f"Created new order: {response['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
+
+                        if not DRY_RUN:
                             response = binance_client.create_order(**params)
-                            print(f"Created new order: {response['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
-                            # 存储订单映射
-                            order_id_map[order_id] = response['orderId']
+                        # 存储订单映射
+                        order_id_map[order_id] = response['orderId']
                     
                     # 如果是取消订单
                     elif action == 'canceled':
                         # 检查是否存在订单映射
                         if order_id in order_id_map:
                             binance_order_id = order_id_map[order_id]
-                            symbol = symbol_mapping.get(coin)
+                            symbol = symbol_mapping.get(coin)[0]
                             if not symbol:
                                 continue
                             
@@ -116,12 +102,15 @@ if __name__ == "__main__":
                                     orderId=binance_order_id
                                 )
                                 print(f"Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
-                                # 从映射中移除已取消的订单
                                 del order_id_map[order_id]
                             except Exception as e:
                                 print(f"Failed to cancel order {binance_order_id} for {symbol}: {e}")
                         else:
                             print(f"No corresponding order found for Hyperliquid order ID: {order_id}")
+                    elif action == "filled":
+                        # 检查自己的订单是否成交，如果没成交则视为没follow成功，提示错误
+                        # 这里需要考虑是否市价单跟上？还是平掉已有的订单
+                        pass
                     else:
                         print("=============================================================================")
                         print(f"Unknown status: {action}")
