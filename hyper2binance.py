@@ -90,7 +90,6 @@ if __name__ == "__main__":
                             "symbol": symbol,
                             "side": "SELL" if side == "A" else "BUY",
                             "type": "LIMIT",
-                            "positionSide": "BOTH",
                             "timeInForce": "GTC",
                             "quantity": proportional_size,
                             "price": limit_price,
