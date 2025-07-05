@@ -42,6 +42,7 @@ if __name__ == "__main__":
             data = json.loads(message)
 
             hyper_log(json.dumps(order_id_map, indent=4))
+            hyper_log(f"委托订单数量为：{len(order_id_map)}")
             
             if isinstance(data, dict) and data.get('channel') == 'orderUpdates':
                 for update in data.get('data', []):
@@ -125,7 +126,6 @@ if __name__ == "__main__":
                                 hyper_log(f"❌Canceled order: {order_id}->{binance_order_id}, {side} {size} {symbol} @ {limit_price}")
                                 del order_id_map[order_id]
                             except Exception as e:
-                                # 撤单失败
                                 hyper_log(f"❌Failed to cancel order {order_id}->{binance_order_id} for {symbol}, maybe filled: {e}", "warning")
                         else:
                             # 模拟盘或者刚启动的时候，没有订单ID
@@ -142,6 +142,19 @@ if __name__ == "__main__":
                             hyper_log(f"{coin}  {order_id}->{binance_order_id} follow fail", "warning")
                     else:
                         hyper_log("未知的action: " + action)
+            
+            # check 是否存在未取消的订单
+            if not DRY_RUN:
+                open_orders = binance_client.get_orders()
+                for order in open_orders:
+                    order_id = order['orderId']
+                    if order['status'] == "NEW" and order_id not in order_id_map.values():
+                        try:
+                            binance_client.cancel_order(symbol=order['symbol'], orderId=order_id)
+                            hyper_log("取消未完成订单: " + str(order))
+                        except Exception as e:
+                            hyper_log("取消订单失败: " + str(e), "error")
+                    
         except Exception as e:
             hyper_log(e, "error")
 

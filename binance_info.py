@@ -1,8 +1,8 @@
 from binance.um_futures import UMFutures
 import json
+import os
 
-c = UMFutures()
+c = UMFutures(key=os.environ["binance_api_key"], secret=os.environ["binance_api_secret"])
 info = c.exchange_info()
-# The exchange_info() already returns a dictionary, so no need to json.loads
-# obj = json.loads(info)
-print(json.dumps(info, indent=4))
+orders = c.get_orders()
+print(json.dumps(orders, indent=4))
