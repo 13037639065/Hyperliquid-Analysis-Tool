@@ -28,7 +28,9 @@ def hyper_log(message, level="info"):
         send_feishu_text(f"机器人错误报警", message)
 
 if __name__ == "__main__":
+    send_feishu_text("交易机器人", "自动交易机器人启动成功")
     order_id_map = {}
+    
     
     binance_client = UMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
     exchange_info = binance_client.exchange_info()
@@ -92,6 +94,7 @@ if __name__ == "__main__":
                             "timeInForce": "GTC",
                             "quantity": proportional_size,
                             "price": limit_price,
+                            "reduceOnly": True
                         }
                         
                         hyper_log(f"✅Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
