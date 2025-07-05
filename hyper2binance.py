@@ -1,5 +1,4 @@
 from binance.um_futures import UMFutures
-import time
 import os
 import json
 import websocket
@@ -20,6 +19,9 @@ if __name__ == "__main__":
     order_id_map = {}
     
     binance_client = UMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
+    exchange_info = binance_client.exchange_info()
+    print(json.dumps(exchange_info, indent=4))
+    print(next((s for s in exchange_info['symbols'] if s['symbol'] == "BTCUSDC"), None))
     def on_message(ws, message):
         try:
             data = json.loads(message)
@@ -50,7 +52,6 @@ if __name__ == "__main__":
                         proportional_size = round(size / fac, 3)
                         
                         # 获取市场信息以确保数量符合交易所要求
-                        exchange_info = binance_client.exchange_info()
                         symbol_info = next((s for s in exchange_info['symbols'] if s['symbol'] == symbol), None)
                         if not symbol_info:
                             print(f"Symbol info not found for {symbol}")
