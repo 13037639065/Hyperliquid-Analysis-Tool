@@ -152,6 +152,12 @@ if __name__ == "__main__":
                 open_orders = INFO.open_orders(USER_ADDRESS)
                 # 将数组中 open_orders 的 oid 提取成数组
                 hids = [order['oid'] for order in open_orders]
+
+                print("=============================================================================")
+                print(open_orders)
+                print(hids)
+                print("=============================================================================")
+                
                 # 遍历 order_id_map
                 for hid, bid in order_id_map.items():
                     if hid not in hids:
