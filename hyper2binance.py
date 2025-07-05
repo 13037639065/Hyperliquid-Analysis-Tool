@@ -45,7 +45,6 @@ if __name__ == "__main__":
         try:
             data = json.loads(message)
 
-            hyper_log(json.dumps(order_id_map, indent=4))
             hyper_log(f"委托订单数量为：{len(order_id_map)}")
             
             if isinstance(data, dict) and data.get('channel') == 'orderUpdates':
