@@ -173,9 +173,9 @@ if __name__ == "__main__":
                 diff = hyper_sz - binance_sz * value[2]
                 dir = "多" if diff > 0 else "空"
                 sz = round(abs(diff), 3)
-                hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]})")
+                hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]}), diff = {abs(diff)}")
                 hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}")
-                if diff > value[1]:
+                if abs(diff) > value[1]:
                     hyper_log(f"{coin} 调整：需要开-{dir} 数量{sz}", "error")
 
                     
