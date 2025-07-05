@@ -41,7 +41,7 @@ if __name__ == "__main__":
         try:
             data = json.loads(message)
 
-            hyper_log(json.dumps(order_id_map))
+            hyper_log(json.dumps(order_id_map, indent=4))
             
             if isinstance(data, dict) and data.get('channel') == 'orderUpdates':
                 for update in data.get('data', []):
