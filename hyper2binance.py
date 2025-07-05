@@ -84,7 +84,7 @@ if __name__ == "__main__":
                         # 创建订单参数
                         params = {
                             "symbol": symbol,
-                            "side": "SELL" if side == "A" else "BUY",
+                            "side": "SHOR" if side == "A" else "BUY",
                             "type": "LIMIT",
                             "timeInForce": "GTC",  # 持续有效
                             "quantity": f"{proportional_size:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{proportional_size:.{8}f}" else f"{proportional_size:.{8}f}",
@@ -119,6 +119,7 @@ if __name__ == "__main__":
                             except Exception as e:
                                 hyper_log(f"Failed to cancel order {binance_order_id} for {symbol}: {e}", "error")
                         else:
+                            # 模拟盘或者刚启动的时候，没有订单ID
                             print(f"No corresponding order found for Hyperliquid order ID: {order_id}")
                     elif action == "filled":
                         # 检查自己的订单是否成交，如果没成交则视为没follow成功，提示错误
@@ -130,7 +131,7 @@ if __name__ == "__main__":
                         print(update)
                         print("=============================================================================")
         except Exception as e:
-            print(f"Error processing message: {e}")
+            hyper_log(e, "error")
 
     def on_open(ws):
             # 订阅用户事件，替换为实际的用户地址
