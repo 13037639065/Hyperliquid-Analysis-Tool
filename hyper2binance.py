@@ -92,7 +92,7 @@ if __name__ == "__main__":
                             "newClientOrderId": f"HL_{order_id}"  # 使用Hyperliquid订单ID作为客户端订单ID
                         }
                         
-                        hyper_log(f"Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
+                        hyper_log(f"✅Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
 
                         if not DRY_RUN:
                             response = binance_client.new_order(**params)
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                                     symbol=symbol,
                                     orderId=binance_order_id
                                 )
-                                hyper_log(f"Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
+                                hyper_log(f"❌Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
                                 del order_id_map[order_id]
                             except Exception as e:
                                 hyper_log(f"Failed to cancel order {binance_order_id} for {symbol}: {e}", "error")
