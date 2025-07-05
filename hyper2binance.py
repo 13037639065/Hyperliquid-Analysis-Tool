@@ -97,7 +97,7 @@ if __name__ == "__main__":
                         params = {
                             "symbol": symbol,
                             "side": "SELL" if side == "A" else "BUY",
-                            "type": "LIMIT",
+                            "type": "LIMIT_MAKER",
                             "timeInForce": "GTC",
                             "quantity": proportional_size,
                             "price": limit_price,
