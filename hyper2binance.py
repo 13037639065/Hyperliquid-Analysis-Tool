@@ -1,4 +1,4 @@
-from binance import Client
+from binance.cm_futures import CMFutures
 import time
 import os
 import json
@@ -19,7 +19,7 @@ symbol_mapping = {
 if __name__ == "__main__":
     order_id_map = {}
     
-    binance_client = Client(api_key=os.environ.get("BINANCE_API_KEY"), api_secret=os.environ.get("BINANCE_API_SECRET"))
+    binance_client = CMFutures(api_key=os.environ.get("binance_api_key"), api_secret=os.environ.get("binance_api_secret"))
     def on_message(ws, message):
         try:
             data = json.loads(message)
@@ -48,14 +48,14 @@ if __name__ == "__main__":
                         proportional_size = round(size / fac, 3)
                         
                         # 获取市场信息以确保数量符合交易所要求
-                        exchange_info = binance_client.futures_exchange_info()
+                        exchange_info = binance_client.exchange_info()
                         symbol_info = next((s for s in exchange_info['symbols'] if s['symbol'] == symbol), None)
                         if not symbol_info:
                             print(f"Symbol info not found for {symbol}")
                             continue
                         
                         try:
-                            binance_client.futures_change_leverage(symbol=symbol, leverage=LEVERAGE)
+                            binance_client.change_leverage(symbol=symbol, leverage=LEVERAGE)
                         except Exception as e:
                             print(f"Failed to set leverage for {symbol}: {e}")
                             continue
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                         print(f"Created new order: {response['orderId']}, {params['side']} {params['quantity']} {symbol} @ {params['price']}")
 
                         if not DRY_RUN:
-                            response = binance_client.create_order(**params)
+                            response = binance_client.new_order(**params)
                         # 存储订单映射
                         order_id_map[order_id] = response['orderId']
                     
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                             
                             try:
                                 # 取消订单
-                                binance_client.futures_cancel_order(
+                                binance_client.cancel_order(
                                     symbol=symbol,
                                     orderId=binance_order_id
                                 )
