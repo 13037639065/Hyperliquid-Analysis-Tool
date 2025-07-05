@@ -18,10 +18,11 @@
             "program": "${workspaceFolder}/trade_analysis.py",
             "console": "integratedTerminal",
             "args": [
-                "--buy_start_time", "2025-06-10T09:55:00",
-                "--buy_end_time", "2025-06-20T15:11:00",
-                "--sell_start_time", "2025-06-20T16:15:00",
-                "--sell_end_time", "2025-06-20T16:43:00",
+                "--buy_start_time", "2025-07-04T22:20:00",
+                "--buy_end_time", "2025-07-05T03:46:00",
+                "--sell_start_time", "2025-07-04T12:54:00",
+                "--sell_end_time", "2025-07-04T19:36:00",
+                "--symbol", "BTC",
                 "--min_trade_value", "0"
             ]
         }

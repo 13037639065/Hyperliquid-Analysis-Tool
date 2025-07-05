@@ -2,7 +2,7 @@ import requests
 import os
 import json
 import time
-def send_feishu_text(title, content):
+def send_feishu_text(title: str, content: str):
     headers = {"Content-Type": "application/json"}
     payload = {
         "msg_type": "text",
