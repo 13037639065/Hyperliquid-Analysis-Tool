@@ -21,8 +21,7 @@ def place_proportional_orders(open_orders):
     account_info = binance_client.futures_account()
     
     # 计算总资产价值（以USDT/USDC计价）
-    total_equity = float(account_info['totalMarginBalance'])
-    print("Total Equity:", total_equity)
+    print("Total Equity:", account_info)
     
     # 按代币分组订单
     orders_by_coin = {}
