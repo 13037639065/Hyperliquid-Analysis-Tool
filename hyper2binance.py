@@ -107,15 +107,15 @@ if __name__ == "__main__":
 
                         if not DRY_RUN:
                             response = binance_client.new_order(**params)
-                            order_id_map[order_id] = int(response['orderId'])
+                            order_id_map[order_id] = (symbol, response['orderId'])
                         else:
-                            order_id_map[order_id] = str(uuid.uuid4())
+                            order_id_map[order_id] = (symbol, uuid.uuid1())
                     
                     # 如果是取消订单
                     elif action == 'canceled':
                         # 检查是否存在订单映射
                         if order_id in order_id_map:
-                            binance_order_id = order_id_map[order_id]
+                            binance_order_id = order_id_map[order_id][1]
                             symbol = symbol_mapping.get(coin)[0]
                             if not symbol:
                                 continue
@@ -137,7 +137,7 @@ if __name__ == "__main__":
                     elif action == "filled":
                         # 检查自己的订单是否成交，如果没成交则视为没follow成功，提示错误
                         # 这里需要考虑是否市价单跟上？还是平掉已有的订单
-                        binance_order_id = order_id_map[order_id]
+                        binance_order_id = order_id_map[order_id][1]
                         response = binance_client.query_order(symbol = symbol_mapping.get(coin)[0], orderId=binance_order_id)
                         if str(response['status']).lower() == "filled":
                             hyper_log(f"{coin} {order_id}->{binance_order_id} follow success")
@@ -157,17 +157,12 @@ if __name__ == "__main__":
                 print(open_orders)
                 print(hids)
                 print("=============================================================================")
-                
+
                 # 遍历 order_id_map
-                for hid, bid in order_id_map.items():
+                for hid, value in order_id_map.items():
                     if hid not in hids:
-                        # 在open_orders找oid==hid的
-                        matched = [order for order in open_orders if order['oid'] == hid]
-                        if not matched:
-                            continue
-                        coin = matched[0]['coin']
                         try:
-                            binance_client.cancel_order(symbol=symbol_mapping[coin][0], orderId=bid)
+                            binance_client.cancel_order(symbol=value[0], orderId=value[1])
                             hyper_log("取消未完成订单: " + str(order))
                             del order_id_map[hid]
                         except Exception as e:
