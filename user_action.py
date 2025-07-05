@@ -1,6 +1,5 @@
 import argparse
 import time
-import json
 from hyperliquid.info import Info
 from hyperliquid.utils  import constants 
 
