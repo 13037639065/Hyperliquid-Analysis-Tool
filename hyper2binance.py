@@ -82,6 +82,8 @@ if __name__ == "__main__":
                             proportional_size = max(min_qty, proportional_size - (proportional_size % step_size))
                         
                         # 创建订单参数
+                        # 强制保留3位小数
+                        proportional_size = round(proportional_size, 3)
                         params = {
                             "symbol": symbol,
                             "side": "SELL" if side == "A" else "BUY",
