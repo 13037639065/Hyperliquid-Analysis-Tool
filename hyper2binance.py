@@ -163,8 +163,6 @@ if __name__ == "__main__":
             # 检查币安持仓和hyper是否差一手，如果差了则市价补齐
             hyper_positions = INFO.user_state(USER_ADDRESS)
             binance_positions = binance_client.get_position_risk()
-            print("hyper_positions: ", json.dumps(hyper_positions, indent=4))
-            print("binance_positions: ", json.dumps(binance_positions, indent=4))
             for coin, value in symbol_mapping.items():
                 symbol = value[0]
                 hyper_position = next((p for p in hyper_positions['assetPositions'] if p['position']['coin'] == coin), None)
