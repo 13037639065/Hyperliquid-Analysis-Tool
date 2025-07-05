@@ -156,7 +156,7 @@ if __name__ == "__main__":
                 for hid, bid in order_id_map.items():
                     if hid not in hids:
                         # 在open_orders找oid==hid的
-                        coin = [order for order in open_orders if order['oid'] == hid]['coin']
+                        coin = [order for order in open_orders if order['oid'] == hid][0]['coin']
                         try:
                             binance_client.cancel_order(symbol=symbol_mapping[coin][0], orderId=bid)
                             hyper_log("取消未完成订单: " + str(order))
