@@ -158,7 +158,6 @@ if __name__ == "__main__":
                         # 在open_orders找oid==hid的
                         matched = [order for order in open_orders if order['oid'] == hid]
                         if not matched:
-                            hyper_log(f"Order ID {hid} not found in open_orders", "error")
                             continue
                         coin = matched[0]['coin']
                         try:
