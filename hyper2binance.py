@@ -4,11 +4,15 @@ import json
 import websocket
 from feishu_msg import send_feishu_text
 import uuid
+from hyperliquid.info  import Info
+from hyperliquid.utils  import constants
 
-DRY_RUN = False # 模拟交易
+DRY_RUN = True # 模拟交易
 FACTOR  = 1  # 仓位占比
 LEVERAGE = 20
 USER_ADDRESS = os.environ.get('target_address')
+
+INFO = Info(constants.MAINNET_API_URL, skip_ws=True)
 
 
 # hyper 转 币安symbol 和一手做单大小，缩小倍数
@@ -145,6 +149,7 @@ if __name__ == "__main__":
             
             # check 是否存在未取消的订单
             if not DRY_RUN:
+                open_orders = INFO.open_orders(USER_ADDRESS)
                 open_orders = binance_client.get_orders()
                 for order in open_orders:
                     order_id = order['orderId']
@@ -154,6 +159,24 @@ if __name__ == "__main__":
                             hyper_log("取消未完成订单: " + str(order))
                         except Exception as e:
                             hyper_log("取消订单失败: " + str(e), "error")
+            
+            # 检查币安持仓和hyper是否差一手，如果差了则市价补齐
+            hyper_positions = INFO.user_state(USER_ADDRESS)
+            binance_positions = binance_client.get_position_risk()
+            # binance_positions = binance_client.get_position_mode
+            for coin, value in symbol_mapping.items():
+                symbol = value[0]
+                hyper_position = next((p for p in hyper_positions['assetPositions'] if p['position']['coin'] == coin), None)
+                binance_position = next((p for p in binance_positions if p['symbol'] == symbol), None)
+
+                # hyper_position  为 None  hyper_sz = 0
+                hyper_sz = 0 if hyper_position is None else hyper_position['position']['szi']
+                binance_sz = 0 if binance_position is None else float(binance_position['amount'])
+                diff = hyper_sz - binance_sz * value[2]
+                dir = "多" if diff > 0 else "空"
+                hyper_log(f"{coin} 持仓: ({hyper_sz} == {binance_sz * value[2]})")
+                hyper_log(f"{coin} 调整：需要开-{dir} 数量{diff / value[2]}")
+
                     
         except Exception as e:
             hyper_log(e, "error")
