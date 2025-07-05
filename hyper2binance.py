@@ -4,7 +4,7 @@ import json
 import websocket
 from feishu_msg import send_feishu_text
 
-DRY_RUN = True # 模拟交易
+DRY_RUN = False # 模拟交易
 FACTOR  = 1  # 仓位占比
 LEVERAGE = 20
 
