@@ -2,7 +2,7 @@ from binance.um_futures import UMFutures
 import os
 import json
 import websocket
-
+from feishu_msg import send_feishu_text
 
 DRY_RUN = True # 模拟交易
 FACTOR  = 1  # 仓位占比
@@ -24,14 +24,14 @@ def hyper_log(message, level="info"):
     
     reset_code = "\033[0m"
     print(f"{color_code}[{level.upper()}]  {message}{reset_code}")
+    if level == "error":
+        send_feishu_text(f"机器人错误报警", message)
 
 if __name__ == "__main__":
     order_id_map = {}
     
     binance_client = UMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
     exchange_info = binance_client.exchange_info()
-    print(json.dumps(exchange_info, indent=4))
-    print(next((s for s in exchange_info['symbols'] if s['symbol'] == "BTCUSDC"), None))
     def on_message(ws, message):
         try:
             data = json.loads(message)
@@ -114,10 +114,10 @@ if __name__ == "__main__":
                                     symbol=symbol,
                                     orderId=binance_order_id
                                 )
-                                print(f"Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
+                                hyper_log(f"Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
                                 del order_id_map[order_id]
                             except Exception as e:
-                                print(f"Failed to cancel order {binance_order_id} for {symbol}: {e}")
+                                hyper_log(f"Failed to cancel order {binance_order_id} for {symbol}: {e}", "error")
                         else:
                             print(f"No corresponding order found for Hyperliquid order ID: {order_id}")
                     elif action == "filled":
