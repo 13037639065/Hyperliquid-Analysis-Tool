@@ -117,10 +117,11 @@ if __name__ == "__main__":
                             
                             try:
                                 # 取消订单
-                                binance_client.cancel_order(
-                                    symbol=symbol,  
-                                    orderId=binance_order_id
-                                )
+                                if not DRY_RUN:
+                                    binance_client.cancel_order(
+                                        symbol=symbol,  
+                                        orderId=binance_order_id
+                                    )
                                 hyper_log(f"❌Canceled order: {order_id}->{binance_order_id}, {side} {size} {symbol} @ {limit_price}")
                                 del order_id_map[order_id]
                             except Exception as e:
