@@ -3,10 +3,13 @@ import os
 import json
 import websocket
 from feishu_msg import send_feishu_text
+import uuid
 
-DRY_RUN = False # 模拟交易
+DRY_RUN = True # 模拟交易
 FACTOR  = 1  # 仓位占比
 LEVERAGE = 20
+USER_ADDRESS = os.environ.get('target_address')
+
 
 # hyper 转 币安symbol 和一手做单大小，缩小倍数
 symbol_mapping = {
@@ -38,7 +41,7 @@ if __name__ == "__main__":
         try:
             data = json.loads(message)
 
-            print(data)
+            hyper_log(json.dumps(order_id_map))
             
             if isinstance(data, dict) and data.get('channel') == 'orderUpdates':
                 for update in data.get('data', []):
@@ -100,6 +103,9 @@ if __name__ == "__main__":
                         if not DRY_RUN:
                             response = binance_client.new_order(**params)
                             order_id_map[order_id] = int(response['orderId'])
+                        else:
+                            response['orderId'] = str(uuid.uuid4())
+                            order_id_map[order_id] = response['orderId']
                     
                     # 如果是取消订单
                     elif action == 'canceled':
@@ -135,13 +141,13 @@ if __name__ == "__main__":
                             # 跟单失败
                             hyper_log(f"{coin}  {order_id}->{binance_order_id} follow fail", "warning")
                     else:
-                        hyper_log("未知的action: " + action, "error")
+                        hyper_log("未知的action: " + action)
         except Exception as e:
             hyper_log(e, "error")
 
     def on_open(ws):
             # 订阅用户事件，替换为实际的用户地址
-        target_address = os.environ.get('target_address')
+        target_address = USER_ADDRESS
         subscription_msg = {
             "method": "subscribe",
             "subscription": {
