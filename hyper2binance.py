@@ -99,8 +99,7 @@ if __name__ == "__main__":
 
                         if not DRY_RUN:
                             response = binance_client.new_order(**params)
-                            order_id_map[order_id] = response['orderId']
-                            hyper_log(json.dumps(order_id_map, indent=4))
+                            order_id_map[order_id] = int(response['orderId'])
                     
                     # 如果是取消订单
                     elif action == 'canceled':
@@ -114,25 +113,29 @@ if __name__ == "__main__":
                             try:
                                 # 取消订单
                                 binance_client.cancel_order(
-                                    symbol=symbol,
+                                    symbol=symbol,  
                                     orderId=binance_order_id
                                 )
-                                hyper_log(f"❌Canceled order: {binance_order_id}, {side} {size} {symbol} @ {limit_price}")
+                                hyper_log(f"❌Canceled order: {order_id}->{binance_order_id}, {side} {size} {symbol} @ {limit_price}")
                                 del order_id_map[order_id]
                             except Exception as e:
-                                hyper_log(f"Failed to cancel order {binance_order_id} for {symbol}: {e}", "error")
+                                # 撤单失败
+                                hyper_log(f"❌Failed to cancel order {order_id}->{binance_order_id} for {symbol}, maybe filled: {e}", "warning")
                         else:
                             # 模拟盘或者刚启动的时候，没有订单ID
                             print(f"No corresponding order found for Hyperliquid order ID: {order_id}")
                     elif action == "filled":
                         # 检查自己的订单是否成交，如果没成交则视为没follow成功，提示错误
                         # 这里需要考虑是否市价单跟上？还是平掉已有的订单
-                        pass
+                        binance_order_id = order_id_map[order_id]
+                        response = binance_client.query_order(symbol = symbol_mapping.get(coin)[0], orderId=binance_order_id)
+                        if str(response['status']).lower() == "filled":
+                            hyper_log(f"{coin} {order_id}->{binance_order_id} follow success")
+                        else:
+                            # 跟单失败
+                            hyper_log(f"{coin}  {order_id}->{binance_order_id} follow fail", "warning")
                     else:
-                        print("=============================================================================")
-                        print(f"Unknown status: {action}")
-                        print(update)
-                        print("=============================================================================")
+                        hyper_log("未知的action: " + action, "error")
         except Exception as e:
             hyper_log(e, "error")
 
