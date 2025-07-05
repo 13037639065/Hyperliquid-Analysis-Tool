@@ -93,7 +93,6 @@ if __name__ == "__main__":
                             "timeInForce": "GTC",
                             "quantity": proportional_size,
                             "price": limit_price,
-                            "reduceOnly": True
                         }
                         
                         hyper_log(f"✅Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
