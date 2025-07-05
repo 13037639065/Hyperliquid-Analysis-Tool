@@ -59,7 +59,7 @@ if __name__ == "__main__":
                         # 计算按比例缩小的订单数量
                         fac = symbol_mapping.get(coin)[2]
                         # proportional_size 四舍五入保留三位小数
-                        proportional_size = round(size / fac, 3)
+                        proportional_size =size / fac
                         
                         # 获取市场信息以确保数量符合交易所要求
                         symbol_info = next((s for s in exchange_info['symbols'] if s['symbol'] == symbol), None)
@@ -84,12 +84,12 @@ if __name__ == "__main__":
                         # 创建订单参数
                         params = {
                             "symbol": symbol,
-                            "side": "SHOR" if side == "A" else "BUY",
+                            "side": "SELL" if side == "A" else "BUY",
                             "type": "LIMIT",
-                            "timeInForce": "GTC",  # 持续有效
-                            "quantity": f"{proportional_size:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{proportional_size:.{8}f}" else f"{proportional_size:.{8}f}",
-                            "price": f"{limit_price:.{8}f}".rstrip('0').rstrip('.') if '.' in f"{limit_price:.{8}f}" else f"{limit_price:.{8}f}",
-                            "newClientOrderId": f"HL_{order_id}"  # 使用Hyperliquid订单ID作为客户端订单ID
+                            "positionSide": "BOTH",
+                            "timeInForce": "GTC",
+                            "quantity": proportional_size,
+                            "price": limit_price,
                         }
                         
                         hyper_log(f"✅Created new order: {params['side']} {params['quantity']} {symbol} @ {params['price']}")
