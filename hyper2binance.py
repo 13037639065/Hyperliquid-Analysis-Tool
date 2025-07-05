@@ -18,10 +18,14 @@ symbol_mapping = {
 
 def place_proportional_orders(open_orders):
     # 获取账户信息
-    account_info = binance_client.futures_account()
+    account_info = binance_client.futures_account() 
+    usdc_balance = next(
+        (asset for asset in account_info["assets"] if asset["asset"] == "USDC"),
+        {"availableBalance": "0.0", "marginBalance": "0.0"}
+    )
+    print(f"可用余额: {usdc_balance['availableBalance']} USDC")
+    print(f"抵押余额: {usdc_balance['marginBalance']} USDC")
     
-    # 计算总资产价值（以USDT/USDC计价）
-    print("Total Equity:", account_info)
     
     # 按代币分组订单
     orders_by_coin = {}
