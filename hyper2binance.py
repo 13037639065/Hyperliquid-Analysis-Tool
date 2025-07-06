@@ -6,6 +6,7 @@ from feishu_msg import send_feishu_text
 import uuid
 from hyperliquid.info  import Info
 from hyperliquid.utils  import constants
+import time
 
 DRY_RUN = False # 模拟交易
 FACTOR  = 1  # 仓位占比
@@ -40,6 +41,12 @@ def main():
     
     binance_client = UMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
     exchange_info = binance_client.exchange_info()
+
+    last_check_time = time.time()
+
+    # 遍历 symbol_mapping 中的每个 symbol
+    for k, v in symbol_mapping.items():
+        binance_client.change_leverage(v[0], LEVERAGE)
     def on_message(ws, message):
         data = {}
         try:
@@ -78,11 +85,7 @@ def main():
                         hyper_log(f"Symbol info not found for {symbol}", "error")
                         continue
                     
-                    try:
-                        binance_client.change_leverage(symbol=symbol, leverage=LEVERAGE)
-                    except Exception as e:
-                        hyper_log(f"Failed to set leverage for {symbol}: {e}", "error")
-                        continue
+                    
                     
                     # 确保数量符合交易所最小交易单位要求
                     lot_size = next((f for f in symbol_info['filters'] if f['filterType'] == 'LOT_SIZE'), None)
@@ -150,6 +153,11 @@ def main():
                         hyper_log(f"{coin}  {order_id}->{binance_order_id} follow fail", "warning")
                 else:
                     hyper_log("未知的action: " + action)
+
+        # check 上次时间间隔5秒才行
+        if time.time() - last_check_time < 5:
+            return
+        last_check_time = time.time()
         
         # check 是否存在未取消的订单
         if not DRY_RUN:
