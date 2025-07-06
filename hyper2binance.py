@@ -7,6 +7,7 @@ import uuid
 from hyperliquid.info  import Info
 from hyperliquid.utils  import constants
 import time
+import datetime
 
 DRY_RUN = False # 模拟交易
 FACTOR  = 1  # 仓位占比
@@ -29,9 +30,10 @@ def hyper_log(message, level="info"):
         "warning": "\033[93m",# 黄色 
         "error": "\033[91m"   # 红色 
     }.get(level.lower(),  "\033[0m")  # 默认无色 
-    
+
+    datetime_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     reset_code = "\033[0m"
-    print(f"{color_code}[{level.upper()}]  {message}{reset_code}")
+    print(f"{color_code}{datetime_str} [{level.upper()}]: {message}{reset_code}")
     if level == "error":
         send_feishu_text(f"机器人错误报警", message)
 
