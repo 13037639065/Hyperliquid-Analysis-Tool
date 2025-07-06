@@ -7,7 +7,7 @@ import uuid
 from hyperliquid.info  import Info
 from hyperliquid.utils  import constants
 import time
-import datetime
+from datetime import datetime
 
 DRY_RUN = False # 模拟交易
 FACTOR  = 1  # 仓位占比
@@ -38,7 +38,6 @@ def hyper_log(message, level="info"):
         send_feishu_text(f"机器人错误报警", message)
 
 def main():
-    send_feishu_text("交易机器人", "自动交易机器人启动成功")
     order_id_map = {}
     
     binance_client = UMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
@@ -236,6 +235,7 @@ def main():
 
 
 if __name__ == "__main__":
+    send_feishu_text("交易机器人", "自动交易机器人启动成功")
     while True:
         try:
             main()
