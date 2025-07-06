@@ -37,13 +37,14 @@ def hyper_log(message, level="info"):
     if level == "error":
         send_feishu_text(f"机器人错误报警", message)
 
+last_check_time = time.time()
 def main():
     order_id_map = {}
     
     binance_client = UMFutures(key=os.environ.get("binance_api_key"), secret=os.environ.get("binance_api_secret"))
     exchange_info = binance_client.exchange_info()
 
-    last_check_time = time.time()
+    
 
     # 遍历 symbol_mapping 中的每个 symbol
     for k, v in symbol_mapping.items():
