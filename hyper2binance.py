@@ -153,24 +153,40 @@ def main():
         
         # check 是否存在未取消的订单
         if not DRY_RUN:
-            hids = []
+            hids = None
             try:
                 open_orders = INFO.open_orders(USER_ADDRESS)
                 # 将数组中 open_orders 的 oid 提取成数组
                 hids = [order['oid'] for order in open_orders]
             except Exception as e:
-                hyper_log("获取未完成订单失败: " + str(e), "error")
+                hyper_log("获取未完成订单失败: " + str(e), "warning")
 
-            # 遍历 order_id_map
-            for hid in list(order_id_map.keys()):
-                value = order_id_map[hid]
-                if hid not in hids:
-                    try:
-                        binance_client.cancel_order(symbol=value[0], orderId=value[1])
-                        hyper_log("取消未完成订单: " + str(order))
+            if not hids:
+                for hid in list(order_id_map.keys()):
+                    value = order_id_map[hid]
+                    if hid not in hids:
+                        try:
+                            binance_client.cancel_order(symbol=value[0], orderId=value[1])
+                            hyper_log("取消未完成订单: " + str(order))
+                            del order_id_map[hid]
+                        except Exception as e:
+                            hyper_log("取消订单失败: " + str(e), "warning")
+            # 根据binance 的订单。判断是否已经成交。从map中删除已经成交的订单
+            bids = None
+            try:
+                binance_open_orders = binance_client.get_orders()
+                bids = [order['orderId'] for order in binance_open_orders]
+            except Exception as e:
+                hyper_log("获取binance订单失败: " + str(e), "warning")
+            
+            if not bids:
+                for hid in list(order_id_map.keys()):
+                    value = order_id_map[hid]
+                    boid = value[1]
+                    if boid not in bids:
+                        hyper_log("币安订单不存在: 已经成交了" + boid, "warning")
                         del order_id_map[hid]
-                    except Exception as e:
-                        hyper_log("取消订单失败: " + str(e), "warning")
+            
                     
         
         # 检查币安持仓和hyper是否差一手，如果差了则市价补齐
