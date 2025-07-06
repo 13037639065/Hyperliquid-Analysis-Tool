@@ -156,6 +156,7 @@ def main():
                     hyper_log("未知的action: " + action)
 
         # check 上次时间间隔5秒才行
+        global last_check_time
         if time.time() - last_check_time < 5:
             return
         last_check_time = time.time()
