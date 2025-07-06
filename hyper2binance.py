@@ -237,6 +237,7 @@ if __name__ == "__main__":
     while True:
         try:
             main()
+            time.sleep(60)
         except KeyboardInterrupt:
             hyper_log("KeyboardInterrupt will exit...", "error")
         except Exception as e:
