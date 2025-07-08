@@ -4,5 +4,5 @@ import os
 
 c = UMFutures(key=os.environ["binance_api_key"], secret=os.environ["binance_api_secret"])
 info = c.exchange_info()
-orders = c.get_orders()
-print(json.dumps(orders, indent=4))
+ticker = c.book_ticker("BTCUSDC")
+print(json.dumps(ticker, indent=4))
