@@ -8,7 +8,7 @@ from tabulate import tabulate
 
 # 初始化交易所实例，指定监控的交易对
 # 可以传入自定义交易对列表，例如: FakerExchange(symbols=["BTCUSDT", "ETHUSDT"])
-faker_exchange = FakerExchange(symbols=["BTCUSDC", "ETHUSDC", "SOLUSDC"])
+faker_exchange = FakerExchange(symbols=["BTC", "ETH", "SOL"])
 def display_info():
     while True:
         # os.system("clear") # Removed clear console
