@@ -11,13 +11,14 @@ from datetime import datetime
 class FakerExchange:
     def __init__(self, symbols=None, name="manual"):
         self.symbols = [symbol.upper() for symbol in symbols]
-            
+        self.symbols = [f"{symbol}USDC" for symbol in self.symbols]
         self.maker_fee = 0.0000  # 假设挂单手续费为0.02%
         self.taker_fee = 0.0005  # 假设吃单手续费
         self.orders = {}
         self.positions = {}
         self.balance = 0  # Initial balance
         self.pnl = 0.0
+        self.trade_count = 0  # 新增：订单成交次数统计，默认为0
         self.latest_prices = {symbol: None for symbol in self.symbols}
         self.oid = 10000
         self.running = True
@@ -113,6 +114,7 @@ class FakerExchange:
                         order['status'] = "FILLED"
                         order["updateTime"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
                         self._update_position(symbol, order['quantity'], price, "LIMIT")
+                        self.trade_count += 1  # 订单成交，增加计数器
                         print(f"Order {order_id} partially filled. Executed: {order['executedQty']}/{order['quantity']}")
                             
                     if (order["side"] == "SELL" and price > order["price"]):
@@ -120,6 +122,7 @@ class FakerExchange:
                         order['status'] = "FILLED"
                         order["updateTime"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
                         self._update_position(symbol, -order['quantity'], price, "LIMIT")
+                        self.trade_count += 1  # 订单成交，增加计数器
                         print(f"Order {order_id} partially filled. Executed: {order['executedQty']}/{order['quantity']}")
                
 
@@ -139,6 +142,7 @@ class FakerExchange:
 
         if type != "LIMIT": # market price
             # 更新 self.positions
+            self.trade_count += 1  # 订单成交，增加计数器
             self._update_position(symbol, quantity, latest_price, "MARKET")
             return True
         else:
@@ -246,11 +250,12 @@ class FakerExchange:
             unrealized_pnl = (current_price - position["entryPrice"]) * position["positionAmt"]
             self.positions[symbol]["unRealizedProfit"] = unrealized_pnl
             self.pnl = sum(pos["unRealizedProfit"] for pos in self.positions.values() if pos["positionAmt"] != 0)
+
     def _init_csv(self):
         """初始化CSV文件并写入表头"""
         with open(self.csv_file_path, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
-            writer.writerow(['时间', '占用资金', 'BTC持仓', 'ETH持仓', 'SOL持仓', '盈亏', '收益率'])
+            writer.writerow(['时间', '占用资金', 'BTC持仓', 'ETH持仓', 'SOL持仓', '盈亏', '收益率', '成交次数'])  # 添加'成交次数'列
 
     def _save_data_periodically(self):
         """每秒保存一次数据到CSV文件"""
@@ -277,7 +282,8 @@ class FakerExchange:
                         f"{eth_position:.4f}",
                         f"{sol_position:.4f}",
                         f"{self.pnl:.2f}",
-                        f"{roi:.2f}%"
+                        f"{roi:.2f}%",
+                        str(self.trade_count)  # 添加成交次数数据
                     ])
                 
                 # 每隔1秒保存一次
