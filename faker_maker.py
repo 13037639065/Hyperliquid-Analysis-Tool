@@ -6,24 +6,15 @@ WHITE_LIST = ["BTC", "ETH", "SOL"]
 TARGET_ADDRESS = os.environ.get("target_address")
 fakerExchange = FakerExchange(symbols=WHITE_LIST, name="limit_maker_follow")
 
-def calculate_mid_price(open_orders, position, price, my_position):
+def calculate_mid_price(open_orders, position, entryPrice, currentPrice):
     """
     根据挂单信息和持仓信息计算中轨价格
+    open_orders 被监控挂单数据
+    position 持仓信息
+    entryPrice 进场价格
+    currentPrice 当前价格
     """
-    # 核心参数在这里调参主要是调这里
-    # position 可能是 None 空仓
-    pass 
-    total_price = 0
-    total_quantity = 0
-    for o in open_orders:
-        total_price += float(o["limitPx"]) * float(o["sz"])
-        total_quantity += float(o["sz"])
-    total_price += float(position['position']['entryPx']) * float(position['position']['szi'])
-    total_quantity += float(position['position']['szi'])
-
-    avg_price = total_price / total_quantity
-    print(f"{symbol} mid price: {avg_price:.3f}")
-    
+    pass
 
 
 if __name__ == "__main__":
