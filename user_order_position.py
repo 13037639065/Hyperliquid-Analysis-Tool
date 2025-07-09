@@ -7,8 +7,12 @@ import time
 import os
 import json
 from feishu_msg import send_feishu_text
+from hyper_price import HyperPrice
+from datetime import datetime
 
 INFO = Info(constants.MAINNET_API_URL, skip_ws=True)
+hyperPrice = None
+
 def get_open_order_position(address, coins):
     while True:
         try:
@@ -23,6 +27,7 @@ def get_open_order_position(address, coins):
             time.sleep(10)
 
 def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"):
+    global hyperPrice
     if not orders:
         print("No orders found.")
         return
@@ -41,9 +46,9 @@ def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"
         orders_by_time_coin[coin].append(order)
     
     for coin, coin_orders in orders_by_time_coin.items():
-        filename = f"{base_path}/{coin}_{user}_oop.csv"
+        filename = f"{base_path}/{coin}_{user}_oopp.csv"
         
-        fieldnames = ['time', 'BUY', 'SELL', 'POSITION']
+        fieldnames = ['time', "price", 'BUY', 'SELL', 'POSITION']
         
         with open(filename, mode='a', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -53,8 +58,10 @@ def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"
 
             # if coin_orders is None or len(coin_orders) == 0:
             if not coin_orders or len(coin_orders) == 0:
+                current_price = hyperPrice.get_coin_price(coin)
                 writer.writerow({
                     'time': datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+                    'price': current_price,
                     'BUY': '[]',
                     'SELL': '[]',
                     'POSITION': '[]'
@@ -91,6 +98,7 @@ def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"
             
             writer.writerow({
                 'time': datetime.fromtimestamp(coin_orders[0]['timestamp'] / 1000).strftime('%Y-%m-%dT%H:%M:%S'),
+                'price': hyperPrice.get_coin_price(coin),
                 'BUY': str(json.dumps(buy_orders)),
                 'SELL': str(json.dumps(sell_orders)),
                 'POSITION': str(json.dumps(position))
@@ -104,12 +112,19 @@ def main():
     parser.add_argument('--symbols', '-ss', nargs='*', default=["BTC", "ETH", "SOL"], help='Whitelisted coins (default: ["BTC", "ETH", "SOL"])')
     
     args = parser.parse_args()
+
+    global hyperPrice
+    hyperPrice = HyperPrice(args.symbols)
     
-    while True:
-        orders,positions = get_open_order_position(args.user, args.symbols)
-        save_to_csv(args.user, orders, positions)
-        
-        time.sleep(2.5)
+    try:
+        while True:
+            orders,positions = get_open_order_position(args.user, args.symbols)
+            save_to_csv(args.user, orders, positions)
+            
+            time.sleep(2.5)
+    except KeyboardInterrupt:
+        hyperPrice.stop()
+        print("Exiting...")
 
 if __name__ == "__main__":
     main()

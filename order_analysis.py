@@ -2,7 +2,7 @@ import csv
 import json 
 import statistics
 from collections import defaultdict
- 
+import argparse
 def analyze_order_spread(csv_file_path):
     """
     分析CSV文件中的买卖挂单价格间距 
@@ -102,11 +102,13 @@ def print_analysis_results(result_dict):
  
 # 示例使用
 if __name__ == "__main__":
-
-    file_path = "trading_data_cache/orders/BTC_0x654086857e1fad6dcf05cf6695cce51ea3984268_orders.csv" 
+    # 使用 argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file", "-f", required=True ,help="CSV文件路径")
+    args = parser.parse_args()
     
     # 分析数据并打印结果 
     print("📊 开始分析挂单价格间距...")
-    analysis_results = analyze_order_spread(file_path)
+    analysis_results = analyze_order_spread(args.file)
     print_analysis_results(analysis_results)
     print("✅ 分析完成！")

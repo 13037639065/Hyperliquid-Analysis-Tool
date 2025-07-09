@@ -76,7 +76,6 @@ class HyperliquidWebSocket:
         """处理收到的消息"""
         try:
             json_data = json.loads(message)
-            print("Received data:", json_data)
 
             if json_data.get("channel") == "trades" and "data" in json_data:
                 trades = json_data["data"]
@@ -118,7 +117,7 @@ class HyperliquidWebSocket:
 
         self.csv_writer.writerow(csv_row)
         self.csv_file.flush()
-        print(f"📝 已记录交易: {coin} @ {px}")
+        print(f"📝 已记录交易: {coin}\tprice={px}\tsize={sz}")
  
     def on_error(self, ws, error):
         """错误处理"""
