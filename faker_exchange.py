@@ -19,6 +19,8 @@ class FakerExchange:
         self.balance = 0  # Initial balance
         self.pnl = 0.0
         self.unRealizedProfit = 0.0
+        self.realized_profit = 0.0  # 已实现盈亏
+        self.total_pnl = 0.0      # 总盈亏
         self.trade_count = 0  # 新增：订单成交次数统计，默认为0
         self.latest_prices = {symbol: None for symbol in self.symbols}
         self.oid = 10000
@@ -220,26 +222,34 @@ class FakerExchange:
         current_position = self.positions[symbol]["positionAmt"]
         current_entry_price = self.positions[symbol]["entryPrice"]
 
-        if quantity + current_position == 0: # close position
+        # one way 模式
+        if quantity + current_position == 0:  # close position
             new_entry_price = 0
             self.balance += price * abs(quantity)
-        if current_position * quantity >= 0: # Same direction or opening new position
+            # 更新已实现盈亏
+            self.realized_profit += (price - current_entry_price) * current_position
+            
+        elif current_position * quantity >= 0:  # Same direction or opening new position
             new_entry_price = (price * abs(quantity) + current_entry_price * abs(current_position)) / abs(quantity + current_position)
             self.balance -= price * abs(quantity)
-        else: # Closing or reversing position
-            if abs(quantity) < abs(current_position): # 只减持仓
+        else:  # Closing or reversing position
+            if abs(quantity) < abs(current_position):  # 只减持仓
                 self.balance += price * abs(quantity)
-            else: # 反手
+                # 更新已实现盈亏
+                self.realized_profit += (price - current_entry_price) * quantity
+            else:  # 反手
                 self.balance += price * abs(current_position)
                 self.balance -= price * (abs(quantity) - abs(current_position))
-                new_entry_price = price # Simplified: if reversing, new entry price is current price
+                # 更新已实现盈亏
+                self.realized_profit += (price - current_entry_price) * current_position
+                new_entry_price = price  # Simplified: if reversing, new entry price is current price
         
         # fee计算
         fee_amount = 0
         if type != "LIMIT":  # 吃单
             fee_amount = abs(quantity) * price * self.taker_fee
             self.balance -= fee_amount
-        else: # 挂单
+        else:  # 挂单
             fee_amount = abs(quantity) * price * self.maker_fee
             self.balance -= fee_amount
 
@@ -248,7 +258,9 @@ class FakerExchange:
 
         if self.positions[symbol]["positionAmt"] == 0:
             del self.positions[symbol]
-        
+            
+        # 更新总盈亏
+        self.total_pnl = self.realized_profit + self.unRealizedProfit
 
         print(f"Position updated for {symbol}: {self.positions[symbol]}")
         print(f"Fee deducted: {fee_amount:.6f} USDC")
@@ -259,12 +271,15 @@ class FakerExchange:
             unrealized_pnl = (current_price - position["entryPrice"]) * position["positionAmt"]
             self.positions[symbol]["unRealizedProfit"] = unrealized_pnl
             self.unRealizedProfit = sum(pos["unRealizedProfit"] for pos in self.positions.values() if pos["positionAmt"] != 0)
+            
+        # 更新总盈亏
+        self.total_pnl = self.realized_profit + self.unRealizedProfit
 
     def _init_csv(self):
         """初始化CSV文件并写入表头"""
         with open(self.csv_file_path, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
-            writer.writerow(['时间', '占用资金', 'BTC持仓', 'ETH持仓', 'SOL持仓', '盈亏', '收益率', '成交次数'])  # 添加'成交次数'列
+            writer.writerow(['时间', '占用资金', 'BTC持仓', 'ETH持仓', 'SOL持仓', '未实现盈亏', '已实现盈亏', '总盈亏', '收益率', '成交次数'])  # 添加'成交次数'列
 
     def _save_data_periodically(self):
         """每秒保存一次数据到CSV文件"""
@@ -279,7 +294,7 @@ class FakerExchange:
                 sol_position = self.positions.get("SOLUSDC", {}).get("positionAmt", 0.0)
                 
                 # 计算收益率
-                roi = (self.pnl / 10000.0) * 100 if self.pnl != 0 else 0.0
+                roi = (self.total_pnl / 10000.0) * 100 if self.total_pnl != 0 else 0.0
                 
                 # 写入数据到CSV
                 with open(self.csv_file_path, mode='a', newline='', encoding='utf-8') as file:
@@ -290,7 +305,9 @@ class FakerExchange:
                         f"{btc_position:.4f}",
                         f"{eth_position:.4f}",
                         f"{sol_position:.4f}",
-                        f"{self.pnl:.2f}",
+                        f"{self.unRealizedProfit:.2f}",
+                        f"{self.realized_profit:.2f}",
+                        f"{self.total_pnl:.2f}",
                         f"{roi:.2f}%",
                         str(self.trade_count)  # 添加成交次数数据
                     ])
