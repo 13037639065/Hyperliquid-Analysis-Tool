@@ -47,8 +47,10 @@ def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"
     
     for coin, coin_orders in orders_by_time_coin.items():
         filename = f"{base_path}/{coin}_{user}_oopp.csv"
-        
         fieldnames = ['time', "price", 'BUY', 'SELL', 'POSITION']
+        current_price = hyperPrice.get_coin_price(coin)
+        if current_price is None:
+            continue
         
         with open(filename, mode='a', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -58,7 +60,6 @@ def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"
 
             # if coin_orders is None or len(coin_orders) == 0:
             if not coin_orders or len(coin_orders) == 0:
-                current_price = hyperPrice.get_coin_price(coin)
                 writer.writerow({
                     'time': datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
                     'price': current_price,
