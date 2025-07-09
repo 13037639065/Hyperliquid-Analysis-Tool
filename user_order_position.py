@@ -97,7 +97,7 @@ def save_to_csv(user, orders, positions, base_path="./trading_data_cache/orders"
             sell_orders.sort(key=lambda x: x['price'])  # 卖方从低到高排序
             
             writer.writerow({
-                'time': datetime.fromtimestamp(coin_orders[0]['timestamp'] / 1000).strftime('%Y-%m-%dT%H:%M:%S'),
+                'time': datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
                 'price': hyperPrice.get_coin_price(coin),
                 'BUY': str(json.dumps(buy_orders)),
                 'SELL': str(json.dumps(sell_orders)),
