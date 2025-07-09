@@ -6,7 +6,7 @@ WHITE_LIST = ["BTC", "ETH", "SOL"]
 TARGET_ADDRESS = os.environ.get("target_address")
 fakerExchange = FakerExchange(symbols=WHITE_LIST, name="limit_maker_follow")
 
-def calculate_mid_price(open_orders, position):
+def calculate_mid_price(open_orders, position, price, my_position):
     """
     根据挂单信息和持仓信息计算中轨价格
     """

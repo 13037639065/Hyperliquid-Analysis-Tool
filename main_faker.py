@@ -13,9 +13,10 @@ def display_info():
     while True:
         # os.system("clear") # Removed clear console
         hyper_file_log("\n" + "="*50) # Add a separator
-        hyper_file_log("--- FakerExchange Trading Console ---")
-        hyper_file_log(f"Balance: {faker_exchange.balance:.2f}")
-        hyper_file_log(f"Total Unrealized PNL: {faker_exchange.pnl:.2f}")
+        hyper_file_log("--- 交易所控制台 ---")
+        hyper_file_log(f"余额(占用资金): {faker_exchange.balance:.2f}")
+        hyper_file_log(f"总盈亏(包含未实现盈亏): {faker_exchange.pnl:.2f}")
+        hyper_file_log(f"成交次数: {faker_exchange.trade_count}")
         hyper_file_log("\n--- Latest Prices ---")
         if faker_exchange.latest_prices:
             for symbol, price in faker_exchange.latest_prices.items():
@@ -57,6 +58,10 @@ def input_handler():
             if action == "exit" or action == "quit":
                 print("Exiting...")
                 os._exit(0) # Force exit all threads
+            elif (action == "cancel" or action == 'c') and len(command) == 1:
+                open_orders = faker_exchange.get_orders()
+                for o in open_orders:
+                    faker_exchange.cancel_order(symbol=o['symbol'], orderId=order_id) # Symbol is not strictly needed for cancel by orderId in this mock
             elif (action == "cancel" or action == 'c') and len(command) == 2:
                 order_id = command[1]
                 faker_exchange.cancel_order(symbol="ANY", orderId=order_id) # Symbol is not strictly needed for cancel by orderId in this mock
@@ -86,7 +91,7 @@ def input_handler():
                 print("\tEnter (symbol quantity price) to place a LIMIT order (e.g., BTCUSDT 0.001 30000)")
                 print("\tEnter (symbol quantity market/m) to place a MARKET order (e.g., ETHUSDT 0.01 market)")
                 print("\tEnter (free) close all orders.")
-                print("\tEnter (cancel/c order_id) to cancel an order (e.g., cancel/c 123e4567)")
+                print("\tEnter (cancel/c [order_id]) to cancel an order (e.g., cancel/c 123e4567), 不写id全部取消")
                 print("\tEnter \'exit\' to quit.")
         except ValueError as e:
             print(f"Invalid quantity or price. Please enter numbers. {e}")

@@ -18,6 +18,7 @@ class FakerExchange:
         self.positions = {}
         self.balance = 0  # Initial balance
         self.pnl = 0.0
+        self.unRealizedProfit = 0.0
         self.trade_count = 0  # 新增：订单成交次数统计，默认为0
         self.latest_prices = {symbol: None for symbol in self.symbols}
         self.oid = 10000
@@ -219,6 +220,9 @@ class FakerExchange:
         current_position = self.positions[symbol]["positionAmt"]
         current_entry_price = self.positions[symbol]["entryPrice"]
 
+        if quantity + current_position == 0: # close position
+            new_entry_price = 0
+            self.balance += price * abs(quantity)
         if current_position * quantity >= 0: # Same direction or opening new position
             new_entry_price = (price * abs(quantity) + current_entry_price * abs(current_position)) / abs(quantity + current_position)
             self.balance -= price * abs(quantity)
@@ -241,6 +245,11 @@ class FakerExchange:
 
         self.positions[symbol]["positionAmt"] = current_position + quantity
         self.positions[symbol]["entryPrice"] = new_entry_price
+
+        if self.positions[symbol]["positionAmt"] == 0:
+            del self.positions[symbol]
+        
+
         print(f"Position updated for {symbol}: {self.positions[symbol]}")
         print(f"Fee deducted: {fee_amount:.6f} USDC")
 
@@ -249,7 +258,7 @@ class FakerExchange:
             position = self.positions[symbol]
             unrealized_pnl = (current_price - position["entryPrice"]) * position["positionAmt"]
             self.positions[symbol]["unRealizedProfit"] = unrealized_pnl
-            self.pnl = sum(pos["unRealizedProfit"] for pos in self.positions.values() if pos["positionAmt"] != 0)
+            self.unRealizedProfit = sum(pos["unRealizedProfit"] for pos in self.positions.values() if pos["positionAmt"] != 0)
 
     def _init_csv(self):
         """初始化CSV文件并写入表头"""
