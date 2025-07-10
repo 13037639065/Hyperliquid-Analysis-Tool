@@ -66,25 +66,30 @@ sm = plt.cm.ScalarMappable(cmap='bwr', norm=plt.Normalize(vmin=vmin, vmax=vmax))
 sm.set_array([])  # 只是为了让 colorbar 正常工作
 plt.colorbar(sm, ax=plt.gca(), label='Position Size')
 
-# 打印 2025-07-10T07:14:00 的 position_size
-print(f"2025-07-10T07:14:00 的 position_size: {df_position.loc[df_position['time'] == '2025-07-10T07:14:00', 'position_size'].values[0]}")
 # 计算 position_size 的变化用于判断买入/卖出动作
 df_position = df_position.sort_values('time').reset_index(drop=True)
 df_position['position_change'] = df_position['position_size'].diff()
 
 # 在价格折线图基础上添加 position_size 变化方向标记
+buy_prices = []
+sell_prices = []
+buy_price_times = []
+sell_price_times = []
 for i in range(1, len(df_position)):
     prev_size = df_position.iloc[i - 1]['position_size']
     curr_size = df_position.iloc[i]['position_size']
     time = df_position.iloc[i]['time']
     price = df['price'].loc[df['time'] == time].values[0]
-
     if curr_size > prev_size:
-        # 上三角表示买入
-        plt.scatter(time, float(price), marker='^', color='blue', s=100, zorder=10)
+        buy_price_times.append(time)
+        buy_prices.append(float(price))
     elif curr_size < prev_size:
-        # 下三角表示卖出
-        plt.scatter(time, float(price), marker='v', color='orange', s=100, zorder=10)
+        sell_price_times.append(time)
+        sell_prices.append(float(price))
+        
+
+plt.scatter(buy_price_times, buy_prices, marker='^', color="#0095f8", s=100, zorder=10, label='Buy Price')
+plt.scatter(sell_price_times, sell_prices, marker='v', color="#5dff57", s=100, zorder=10, label='Sell Price')
 
 plt.xticks(rotation=45) # 旋转x轴标签以便更好地显示时间
 plt.xlabel('Time')
