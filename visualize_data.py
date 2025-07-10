@@ -50,13 +50,13 @@ plt.figure(figsize=(14, 7))
 plt.plot(df['time'], df['price'].astype(float), label='Price', color='black')
 
 # 绘制买入订单价格与大小
-plt.scatter(df_buy['time'], df_buy['buy_price'], s=df_buy['buy_size']*100, c='green', alpha=0.6, label='Buy Orders')
+plt.scatter(df_buy['time'], df_buy['buy_price'], s=10, c='green', alpha=0.6, label='Buy Orders')
 
 # 绘制卖出订单价格与大小
-plt.scatter(df_sell['time'], df_sell['sell_price'], s=df_sell['sell_size']*100, c='red', alpha=0.6, label='Sell Orders')
+plt.scatter(df_sell['time'], df_sell['sell_price'], s=10, c='red', alpha=0.6, label='Sell Orders')
 
 # 绘制持仓均价折线图
-plt.scatter(df_position['time'], df_position['position_entryPx'], c=df_position['position_size'], cmap='bwr', s=100, label='Position Entry Price', zorder=5,marker='s')
+plt.scatter(df_position['time'], df_position['position_entryPx'], c=df_position['position_size'], cmap='bwr', s=5, label='Position Entry Price', zorder=5, marker='s')
 
 # 添加颜色条以表示 position_size 的大小
 v_limit = max(abs(df_position['position_size'].min()), abs(df_position['position_size'].max()))
