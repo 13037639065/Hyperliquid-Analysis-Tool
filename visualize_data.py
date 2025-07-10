@@ -1,5 +1,6 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import ast
 import argparse
 from datetime import datetime
@@ -44,27 +45,19 @@ df_sell[['sell_price', 'sell_size']] = df_sell[['sell_price', 'sell_size']].asty
 df_position[['position_entryPx', 'position_size']] = df_position[['position_entryPx', 'position_size']].astype(float)
 
 # 创建图表
-plt.figure(figsize=(14, 7))
+fig = make_subplots(rows=1, cols=1)
 
 # 绘制价格折线图
-plt.plot(df['time'], df['price'].astype(float), label='Price', color='black')
+fig.add_trace(go.Scatter(x=df['time'], y=df['price'].astype(float), name='Price', line=dict(color='black')))
 
 # 绘制买入订单价格与大小
-plt.scatter(df_buy['time'], df_buy['buy_price'], s=10, c='green', alpha=0.6, label='Buy Orders')
+fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size=10, opacity=0.6)))
 
 # 绘制卖出订单价格与大小
-plt.scatter(df_sell['time'], df_sell['sell_price'], s=10, c='red', alpha=0.6, label='Sell Orders')
+fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=10, opacity=0.6)))
 
 # 绘制持仓均价折线图
-plt.scatter(df_position['time'], df_position['position_entryPx'], c=df_position['position_size'], cmap='bwr', s=5, label='Position Entry Price', zorder=5, marker='s')
-
-# 添加颜色条以表示 position_size 的大小
-v_limit = max(abs(df_position['position_size'].min()), abs(df_position['position_size'].max()))
-vmin = -v_limit
-vmax = v_limit
-sm = plt.cm.ScalarMappable(cmap='bwr', norm=plt.Normalize(vmin=vmin, vmax=vmax))
-sm.set_array([])  # 只是为了让 colorbar 正常工作
-plt.colorbar(sm, ax=plt.gca(), label='Position Size')
+fig.add_trace(go.Scatter(x=df_position['time'], y=df_position['position_entryPx'], mode='markers', name='Position Entry Price', marker=dict(color=df_position['position_size'], colorscale='RdBu', size=5, showscale=True), showlegend=False))
 
 # 计算 position_size 的变化用于判断买入/卖出动作
 df_position = df_position.sort_values('time').reset_index(drop=True)
@@ -86,17 +79,17 @@ for i in range(1, len(df_position)):
     elif curr_size < prev_size:
         sell_price_times.append(time)
         sell_prices.append(float(price))
-        
+ 
+fig.add_trace(go.Scatter(x=buy_price_times, y=buy_prices, mode='markers', name='Buy Price', marker=dict(color="#0095f8", size=10, symbol='triangle-up')))
+fig.add_trace(go.Scatter(x=sell_price_times, y=sell_prices, mode='markers', name='Sell Price', marker=dict(color="#5dff57", size=10, symbol='triangle-down'))) 
 
-plt.scatter(buy_price_times, buy_prices, marker='^', color="#0095f8", s=100, zorder=10, label='Buy Price')
-plt.scatter(sell_price_times, sell_prices, marker='v', color="#5dff57", s=100, zorder=10, label='Sell Price')
-
-plt.xticks(rotation=45) # 旋转x轴标签以便更好地显示时间
-plt.xlabel('Time')
-plt.ylabel('Price')
-plt.title('Order Book Visualization with Position Information')
-plt.legend()
-plt.tight_layout()  # 调整布局以防止裁剪
+fig.update_layout(
+    title='Order Book Visualization with Position Information',
+    xaxis_title='Time',
+    yaxis_title='Price',
+    legend_title='Legend',
+    template='plotly_white'
+)
 
 # 显示图表
-plt.show()
+fig.show()
