@@ -7,23 +7,19 @@ from datetime import datetime
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--file', "-f", help='file name')
-argparser.add_argument('--timedelta', "-tt", default = 60, type=int, help="时间范围，为单位是分钟")
-argparser.add_argument('--time', "-t", default = datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), help='结束时间')
+argparser.add_argument('--timedelta', "-tt", default=60, type=int, help="时间范围，为单位是分钟")
+argparser.add_argument('--time', "-t", default=datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), help='结束时间')
 
 args = argparser.parse_args()
 
 # 根据 args.time 和 limit 计算时间范围用于过滤数据
 end_time = pd.to_datetime(args.time, format="ISO8601")
 start_time = end_time - pd.Timedelta(args.timedelta, unit='m')
-# 输出时间范围
-
 print(f"时间范围：{start_time} - {end_time}")
 
 df = pd.read_csv(args.file)
-
 df['time'] = pd.to_datetime(df['time'], format="ISO8601")  # Convert to datetime
 df = df[(df['time'] >= start_time) & (df['time'] <= end_time)]
-
 
 # 解析BUY, SELL, POSITION列
 df['BUY'] = df['BUY'].apply(ast.literal_eval)
@@ -44,38 +40,43 @@ df_buy[['buy_price', 'buy_size']] = df_buy[['buy_price', 'buy_size']].astype(flo
 df_sell[['sell_price', 'sell_size']] = df_sell[['sell_price', 'sell_size']].astype(float)
 df_position[['position_entryPx', 'position_size']] = df_position[['position_entryPx', 'position_size']].astype(float)
 
-# 创建图表
-fig = make_subplots(rows=1, cols=1)
+# 计算总盈亏（基于position_entryPx和当前价格）
+df['total_profit_loss'] = 0.0
+for i, row in df_position.iterrows():
+    entry_price = row['position_entryPx']
+    position_size = row['position_size']
+    # 当前价格
+    current_price = df[df['time'] == row['time']]['price'].values[0]
+    df.loc[df['time'] == row['time'], 'total_profit_loss'] = (current_price - entry_price) * position_size
+
+# 创建双层图表（两行一列）
+fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1)
 
 # 绘制价格折线图
-fig.add_trace(go.Scatter(x=df['time'], y=df['price'].astype(float), name='Price', line=dict(color='black')))
+fig.add_trace(go.Scatter(x=df['time'], y=df['price'].astype(float), name='Price', line=dict(color='black')), row=1, col=1)
 
 # 绘制买入订单价格与大小
-fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size=10, opacity=0.6)))
+fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size=10, opacity=0.6)), row=1, col=1)
 
 # 绘制卖出订单价格与大小
-fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=10, opacity=0.6)))
+fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=10, opacity=0.6)), row=1, col=1)
 
+# 绘制持仓均价（用 position_size 的大小控制点的尺寸，颜色区分方向）
 fig.add_trace(go.Scatter(
     x=df_position['time'],
     y=df_position['position_entryPx'],
     mode='markers',
     name='Position Entry Price',
     marker=dict(
-        size=df_position['position_size'].abs() * 4,  # 使用 position_size 的绝对值控制点的大小
-        color=['red' if s > 0 else 'blue' for s in df_position['position_size']],  # 根据正负设置颜色        
+        size = 4,
+        color=['#5dff57' if s > 0 else '#0095f8' for s in df_position['position_size']],
         opacity=0.7,
         symbol='diamond',
-        showscale=False  # 不显示颜色比例尺
+        showscale=False
     ),
-    showlegend=False
-))
+), row=1, col=1)
 
-# 计算 position_size 的变化用于判断买入/卖出动作
-df_position = df_position.sort_values('time').reset_index(drop=True)
-df_position['position_change'] = df_position['position_size'].diff()
-
-# 在价格折线图基础上添加 position_size 变化方向标记
+# 添加 position_size 变化方向标记（上三角表示增加，下三角表示减少）
 buy_prices = []
 sell_prices = []
 buy_price_times = []
@@ -91,16 +92,42 @@ for i in range(1, len(df_position)):
     elif curr_size < prev_size:
         sell_price_times.append(time)
         sell_prices.append(float(price))
- 
-fig.add_trace(go.Scatter(x=buy_price_times, y=buy_prices, mode='markers', name='Buy Price', marker=dict(color="#0095f8", size=10, symbol='triangle-up')))
-fig.add_trace(go.Scatter(x=sell_price_times, y=sell_prices, mode='markers', name='Sell Price', marker=dict(color="#5dff57", size=10, symbol='triangle-down'))) 
 
+fig.add_trace(go.Scatter(x=buy_price_times, y=buy_prices, mode='markers', name='Buy Price', marker=dict(color="#0095f8", size=10, symbol='triangle-up')), row=1, col=1)
+fig.add_trace(go.Scatter(x=sell_price_times, y=sell_prices, mode='markers', name='Sell Price', marker=dict(color="#5dff57", size=10, symbol='triangle-down')), row=1, col=1)
+
+# 新增第二张图：持仓数量随时间变化
+df_position_sorted = df_position.sort_values('time')
+fig.add_trace(go.Scatter(
+    x=df_position_sorted['time'],
+    y=df_position_sorted['position_size'],
+    mode='lines+markers',
+    name='Position Size',
+    line=dict(color='purple'),
+    marker=dict(size=6, color=['#5dff57' if s > 0 else '#0095f8' for s in df_position_sorted['position_size']])
+), row=2, col=1)
+
+# 新增第三张图：总盈亏
+fig.add_trace(go.Scatter(
+    x=df['time'],
+    y=df['total_profit_loss'],
+    mode='lines',
+    name='Total Profit/Loss',
+    line=dict(color='orange', width=2),
+), row=3, col=1)
+
+# 布局设置
 fig.update_layout(
     title='Order Book Visualization with Position Information',
-    xaxis_title='Time',
     yaxis_title='Price',
+    yaxis2_title='Position Size',
+    yaxis3_title='Total Profit/Loss',
     legend_title='Legend',
     template='plotly_white'
 )
 
+# 设置横轴标题
+fig.update_xaxes(title_text="Time", row=3, col=1)
+
+# 显示图表
 fig.show()
