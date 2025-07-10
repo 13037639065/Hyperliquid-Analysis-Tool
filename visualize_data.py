@@ -56,8 +56,20 @@ fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers'
 # 绘制卖出订单价格与大小
 fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=10, opacity=0.6)))
 
-# 绘制持仓均价折线图
-fig.add_trace(go.Scatter(x=df_position['time'], y=df_position['position_entryPx'], mode='markers', name='Position Entry Price', marker=dict(color=df_position['position_size'], colorscale='RdBu', size=5, showscale=True), showlegend=False))
+fig.add_trace(go.Scatter(
+    x=df_position['time'],
+    y=df_position['position_entryPx'],
+    mode='markers',
+    name='Position Entry Price',
+    marker=dict(
+        size=df_position['position_size'].abs() * 4,  # 使用 position_size 的绝对值控制点的大小
+        color=['red' if s > 0 else 'blue' for s in df_position['position_size']],  # 根据正负设置颜色        
+        opacity=0.7,
+        symbol='diamond',
+        showscale=False  # 不显示颜色比例尺
+    ),
+    showlegend=False
+))
 
 # 计算 position_size 的变化用于判断买入/卖出动作
 df_position = df_position.sort_values('time').reset_index(drop=True)
@@ -91,5 +103,4 @@ fig.update_layout(
     template='plotly_white'
 )
 
-# 显示图表
 fig.show()
