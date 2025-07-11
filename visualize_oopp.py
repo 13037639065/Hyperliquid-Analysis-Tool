@@ -4,6 +4,7 @@ from plotly.subplots import make_subplots
 import ast
 import argparse
 from datetime import datetime
+import os
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--file', "-f", help='file name')
@@ -11,6 +12,9 @@ argparser.add_argument('--timedelta', "-tt", default=60, type=int, help="时间�
 argparser.add_argument('--time', "-t", default=datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), help='结束时间')
 
 args = argparser.parse_args()
+
+# coin 为文件名的
+coin = str(os.path.basename(args.file)).split("_")[0]
 
 # 根据 args.time 和 limit 计算时间范围用于过滤数据
 end_time = pd.to_datetime(args.time, format="ISO8601")
@@ -40,26 +44,15 @@ df_buy[['buy_price', 'buy_size']] = df_buy[['buy_price', 'buy_size']].astype(flo
 df_sell[['sell_price', 'sell_size']] = df_sell[['sell_price', 'sell_size']].astype(float)
 df_position[['position_entryPx', 'position_size']] = df_position[['position_entryPx', 'position_size']].astype(float)
 
-# 计算总盈亏（基于position_entryPx和当前价格）
-df['total_profit_loss'] = 0.0
-for i, row in df_position.iterrows():
-    entry_price = row['position_entryPx']
-    position_size = row['position_size']
-    # 当前价格
-    current_price = df[df['time'] == row['time']]['price'].values[0]
-    df.loc[df['time'] == row['time'], 'total_profit_loss'] = (current_price - entry_price) * position_size
-
 # 创建双层图表（两行一列）
-fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1)
+fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1)  # Adjusted to 2 rows
 
-# 绘制价格折线图
-fig.add_trace(go.Scatter(x=df['time'], y=df['price'].astype(float), name='Price', line=dict(color='black')), row=1, col=1)
 
 # 绘制买入订单价格与大小
-fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size=10, opacity=0.6)), row=1, col=1)
+fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size=5, opacity=1)), row=1, col=1)
 
 # 绘制卖出订单价格与大小
-fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=10, opacity=0.6)), row=1, col=1)
+fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=5, opacity=1)), row=1, col=1)
 
 # 绘制持仓均价（用 position_size 的大小控制点的尺寸，颜色区分方向）
 fig.add_trace(go.Scatter(
@@ -68,7 +61,7 @@ fig.add_trace(go.Scatter(
     mode='markers',
     name='Position Entry Price',
     marker=dict(
-        size = 4,
+        size = 3,
         color=['#5dff57' if s > 0 else '#0095f8' for s in df_position['position_size']],
         opacity=0.7,
         symbol='diamond',
@@ -92,9 +85,10 @@ for i in range(1, len(df_position)):
     elif curr_size < prev_size:
         sell_price_times.append(time)
         sell_prices.append(float(price))
-
-fig.add_trace(go.Scatter(x=buy_price_times, y=buy_prices, mode='markers', name='Buy Price', marker=dict(color="#0095f8", size=10, symbol='triangle-up')), row=1, col=1)
-fig.add_trace(go.Scatter(x=sell_price_times, y=sell_prices, mode='markers', name='Sell Price', marker=dict(color="#5dff57", size=10, symbol='triangle-down')), row=1, col=1)
+# 绘制价格折线图
+fig.add_trace(go.Scatter(x=df['time'], y=df['price'].astype(float), name='Price', line=dict(color='orange')), row=1, col=1)
+fig.add_trace(go.Scatter(x=buy_price_times, y=buy_prices, mode='markers', name='Buy Price', marker=dict(color="green", size=10, symbol='triangle-up')), row=1, col=1)
+fig.add_trace(go.Scatter(x=sell_price_times, y=sell_prices, mode='markers', name='Sell Price', marker=dict(color="red", size=10, symbol='triangle-down')), row=1, col=1)
 
 # 新增第二张图：持仓数量随时间变化
 df_position_sorted = df_position.sort_values('time')
@@ -107,27 +101,18 @@ fig.add_trace(go.Scatter(
     marker=dict(size=6, color=['#5dff57' if s > 0 else '#0095f8' for s in df_position_sorted['position_size']])
 ), row=2, col=1)
 
-# 新增第三张图：总盈亏
-fig.add_trace(go.Scatter(
-    x=df['time'],
-    y=df['total_profit_loss'],
-    mode='lines',
-    name='Total Profit/Loss',
-    line=dict(color='orange', width=2),
-), row=3, col=1)
-
 # 布局设置
 fig.update_layout(
-    title='Order Book Visualization with Position Information',
+    title=f'{coin} Order Book Visualization with Position Information',
     yaxis_title='Price',
     yaxis2_title='Position Size',
-    yaxis3_title='Total Profit/Loss',
     legend_title='Legend',
-    template='plotly_white'
+    template='plotly_dark',
+    dragmode='zoom',  # 鼠标缩放模式
 )
 
 # 设置横轴标题
-fig.update_xaxes(title_text="Time", row=3, col=1)
+fig.update_xaxes(title_text="Time", row=2, col=1)
 
 # 显示图表
 fig.show()
