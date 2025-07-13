@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from hyperliquid.info import Info
 from hyperliquid.utils import constants
+import argparse
 
 INFO = Info(constants.MAINNET_API_URL, skip_ws=True)
 OUTPUT_DIR = "trading_data_cache/user_fills"
@@ -21,8 +22,11 @@ def open_new_file(address):
     return f, writer
 
 if __name__ == "__main__":
-    user_address = "0x654086857e1fad6dcf05cf6695cce51ea3984268"
+    parser = argparse.ArgumentParser(description="Download user trade data from Hyperliquid")
+    parser.add_argument('--user', '-u', required=True, type=str, help='User address')
+    args = parser.parse_args()
 
+    user_address = args.user
     writer=None
     f = None
 

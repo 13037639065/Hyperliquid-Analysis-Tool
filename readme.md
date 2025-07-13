@@ -37,3 +37,8 @@ payload
     "content": "content",
 }
 ```
+
+## 工具说明
+
+download_trade_data.py 大海捞针
+download_user_trade.py 用户交易数据精准分析
