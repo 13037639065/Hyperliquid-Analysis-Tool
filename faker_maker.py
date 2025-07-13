@@ -28,6 +28,7 @@ if __name__ == "__main__":
 
             if open_orders != None:
                 for order in open_orders:
+                    print(order)
                     order_id = order['orderId']
                     fakerExchange.cancel_order(symbol + "USDC", orderId=order_id)
 
