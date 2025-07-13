@@ -13,7 +13,6 @@ def parse_position_data(file_paths = []):
     for file in file_paths:
         with open(file, 'r', encoding='utf-8') as file:
             for line_number, line in enumerate(file):
-                # 9   0x654086857e1fad6dcf05cf6695cce51ea3984268   (-1.23927, 104718.6)    (-0.8112, 2518.03)     (-60.57, 145.3471)
                 sp =line.split()
                 if len(sp) < 5:
                     continue
