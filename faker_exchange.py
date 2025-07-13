@@ -212,7 +212,7 @@ class FakerExchange:
 
     def get_position_risk(self, symbol: str = None, **kwargs):
         if symbol:
-            return [self.positions.get(symbol, {"symbol": symbol, "positionAmt": 0.0, "entryPrice": 0.0, "unRealizedProfit": 0.0})]
+            return [self.positions.get(symbol, None)]
         
         all_positions = []
         for s, pos in self.positions.items():

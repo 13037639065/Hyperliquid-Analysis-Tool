@@ -25,8 +25,9 @@ if __name__ == "__main__":
             price = fakerExchange.get_latest_price(symbol + "USDC")
             open_orders = fakerExchange.get_position_risk(symbol + "USDC")
             # cancel all
-            for order in open_orders:
-                if order['status'] == 'NEW':
+
+            if open_orders != None:
+                for order in open_orders:
                     order_id = order['orderId']
                     fakerExchange.cancel_order(symbol + "USDC", orderId=order_id)
 
