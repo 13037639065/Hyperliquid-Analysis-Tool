@@ -212,7 +212,11 @@ class FakerExchange:
 
     def get_position_risk(self, symbol: str = None, **kwargs):
         if symbol:
-            return [self.positions.get(symbol, None)]
+            pos = self.positions.get(symbol, None)
+            if pos == None:
+                return []
+            else:
+                return [pos]
         
         all_positions = []
         for s, pos in self.positions.items():
