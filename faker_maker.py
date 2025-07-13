@@ -1,6 +1,5 @@
 import os
 from faker_exchange import FakerExchange
-from user_order_position import get_open_order_position
 
 WHITE_LIST = ["BTC", "ETH", "SOL"]
 TARGET_ADDRESS = os.environ.get("target_address")
@@ -20,18 +19,22 @@ def calculate_mid_price(open_orders, position, entryPrice, currentPrice):
 if __name__ == "__main__":
     print(f"Will follow {TARGET_ADDRESS}")
     while True:
-        orders, positions = get_open_order_position(TARGET_ADDRESS, WHITE_LIST)
 
         # 反向计算中轨价格
         for symbol in WHITE_LIST:
-            open_orders = (o for o in orders if o["coin"] == symbol)
-            position = next((p for p in positions if p['position']["coin"] == symbol), None)
+            price = fakerExchange.get_latest_price(symbol + "USDC")
+            open_orders = fakerExchange.get_position_risk(symbol + "USDC")
+            # cancel all
+            for order in open_orders:
+                if order['status'] == 'NEW':
+                    order_id = order['orderId']
+                    fakerExchange.cancel_order(symbol + "USDC", orderId=order_id)
 
-            avg_price = calculate_mid_price(open_orders, position)
+         
+            for i in range(3):
+                lp = price * (1 + i * 0.0002)
+                fakerExchange.new_order(symbol + "USDC", "SELL", "LIMIT", quantity=0.001, price=lp)
 
-            my_pos = fakerExchange.get_position_risk(symbol)
-            # 根据avg_price 和自己的持仓更新自己的挂单
-            # cancel all orders
-            fakerExchange.cancel_order(symbol)
-
-            # TODO 记录这个指标并且需要根据这个指标来挂单
+            for i in range(3):
+                lp = price * (1 - i * 0.0002)
+                fakerExchange.new_order(symbol + "USDC", "BUY", "LIMIT", quantity=0.001, price=lp)

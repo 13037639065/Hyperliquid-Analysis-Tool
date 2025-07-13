@@ -47,6 +47,10 @@ class FakerExchange:
     def _start_websocket(self):
         """启动WebSocket连接的入口函数"""
         asyncio.run(self._connect_websocket())
+
+    def get_latest_price(self, symbol):
+        """获取最新价格"""
+        return self.latest_prices.get(symbol, None)
     
     async def _connect_websocket(self):
         """建立WebSocket连接并订阅市场数据"""
