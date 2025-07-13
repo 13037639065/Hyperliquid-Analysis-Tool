@@ -1,4 +1,6 @@
 import os
+import time
+from datetime import datetime 
 from faker_exchange import FakerExchange
 
 WHITE_LIST = ["BTC", "ETH", "SOL"]
@@ -32,7 +34,10 @@ if __name__ == "__main__":
                     order_id = order['orderId']
                     fakerExchange.cancel_order(symbol + "USDC", orderId=order_id)
 
-         
+            if price == None:
+                continue
+            price = float(price)
+            print(f"{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}\t{symbol}USDC: {price}")
             for i in range(3):
                 lp = price * (1 + i * 0.0002)
                 fakerExchange.new_order(symbol + "USDC", "SELL", "LIMIT", quantity=0.001, price=lp)
@@ -40,3 +45,5 @@ if __name__ == "__main__":
             for i in range(3):
                 lp = price * (1 - i * 0.0002)
                 fakerExchange.new_order(symbol + "USDC", "BUY", "LIMIT", quantity=0.001, price=lp)
+        
+        time.sleep(1)
