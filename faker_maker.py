@@ -3,7 +3,8 @@ import time
 from datetime import datetime 
 from faker_exchange import FakerExchange
 
-WHITE_LIST = ["BTC", "ETH", "SOL"]
+# WHITE_LIST = ["BTC", "ETH", "SOL"]
+WHITE_LIST = ["BTC"]
 TARGET_ADDRESS = os.environ.get("target_address")
 fakerExchange = FakerExchange(symbols=WHITE_LIST, name="limit_maker_follow")
 
