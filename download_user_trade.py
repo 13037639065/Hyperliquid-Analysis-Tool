@@ -5,6 +5,7 @@ from datetime import datetime
 from hyperliquid.info import Info
 from hyperliquid.utils import constants
 import argparse
+import json
 
 INFO = Info(constants.MAINNET_API_URL, skip_ws=True)
 OUTPUT_DIR = "trading_data_cache/user_fills"
@@ -21,6 +22,11 @@ def open_new_file(address):
     writer =  csv.DictWriter(f,  fieldnames=headers)
     return f, writer
 
+def has_intersection(a, b):
+    a_str_set = {json.dumps(obj, sort_keys=True) for obj in a}
+    b_str_set = {json.dumps(obj, sort_keys=True) for obj in b}
+    res = bool(a_str_set & b_str_set)
+    return res
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download user trade data from Hyperliquid")
     parser.add_argument('--user', '-u', required=True, type=str, help='User address')
@@ -44,7 +50,7 @@ if __name__ == "__main__":
 
             print(datetime.now())
             # pre_fills 和 fills 求交集
-            if not bool(set(pre_fills) & set(fills)):
+            if not has_intersection(pre_fills, fills):
                 if f is not None:
                     f.close()
                 f, writer = open_new_file(user_address)
