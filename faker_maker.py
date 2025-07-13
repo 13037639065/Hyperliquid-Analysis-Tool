@@ -25,7 +25,7 @@ if __name__ == "__main__":
         # 反向计算中轨价格
         for symbol in WHITE_LIST:
             price = fakerExchange.get_latest_price(symbol + "USDC")
-            open_orders = fakerExchange.get_position_risk(symbol + "USDC")
+            open_orders = fakerExchange.get_orders(symbol + "USDC")
             # cancel all
 
             if open_orders != None:
