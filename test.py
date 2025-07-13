@@ -50,11 +50,13 @@ def process_csv(path: str):
         # 按价格由小到大排序
         items.sort(key=lambda x: x[1])
 
-        print(f"{row['time']}\tsize = {row["POSITION"][0].get("size", 0)}")
+        print(f"{row['time']}\tsize = {"0" if len(row["POSITION"]) == 0 else row["POSITION"][0].get("size", 0)}")
         print("\t".join(colorize(p, t) for t, p in items))
         gaps = [f"{items[i+1][1] - items[i][1]:.4f}" for i in range(len(items) - 1)]
         print("\t".join(gaps))
         print("-" * 40)
+
+        input()
 
 
 if __name__ == "__main__":

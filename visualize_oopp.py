@@ -49,10 +49,10 @@ fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1)  # 
 
 
 # 绘制买入订单价格与大小
-fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size=5, opacity=1)), row=1, col=1)
+fig.add_trace(go.Scatter(x=df_buy['time'], y=df_buy['buy_price'], mode='markers', name='Buy Orders', marker=dict(color='green', size = 5, opacity=1)), row=1, col=1)
 
 # 绘制卖出订单价格与大小
-fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size=5, opacity=1)), row=1, col=1)
+fig.add_trace(go.Scatter(x=df_sell['time'], y=df_sell['sell_price'], mode='markers', name='Sell Orders', marker=dict(color='red', size = 5, opacity=1)), row=1, col=1)
 
 # 绘制持仓均价（用 position_size 的大小控制点的尺寸，颜色区分方向）
 fig.add_trace(go.Scatter(
@@ -61,8 +61,8 @@ fig.add_trace(go.Scatter(
     mode='markers',
     name='Position Entry Price',
     marker=dict(
-        size = 3,
-        color=['#5dff57' if s > 0 else '#0095f8' for s in df_position['position_size']],
+        size = 5,
+        color="#6f0091",
         opacity=0.7,
         symbol='diamond',
         showscale=False
