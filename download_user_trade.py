@@ -31,7 +31,7 @@ if __name__ == "__main__":
     f = None
 
     try:
-        pre_hash = []
+        pre_fills = []
         while True:
             try:
                 fills = INFO.user_fills(user_address)
@@ -40,15 +40,11 @@ if __name__ == "__main__":
                 time.sleep(1)
                 continue
 
-            if len(fills) == 0:
-                time.sleep(1)
-                continue
-                
-            # 由于最新的在前面 所以翻转数组
             fills = fills[::-1]
 
             print(datetime.now())
-            if fills[0]["hash"] not in pre_hash:
+            # pre_fills 和 fills 求交集
+            if not bool(set(pre_fills) & set(fills)):
                 if f is not None:
                     f.close()
                 f, writer = open_new_file(user_address)
@@ -57,15 +53,14 @@ if __name__ == "__main__":
                     writer.writerow(fill)
             else:
                 for fill in fills:
-                    oid = fill["hash"]
-                    if oid in pre_hash:
+                    if fill in pre_fills:
                         continue
 
                     writer.writerow(fill)
                     f.flush()  # 实时写入
 
             time.sleep(1)
-            pre_hash = [fill['hash'] for fill in fills]
+            pre_fills = fills
 
     except KeyboardInterrupt:
         print("[INFO] Interrupted. Closing file.")
