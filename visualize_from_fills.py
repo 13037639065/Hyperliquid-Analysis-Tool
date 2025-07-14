@@ -8,13 +8,14 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Visualize fills from Hyperliquid")
     parser.add_argument('--coin', '-c', type=str, default='BTC', help='Coin to filter (default: BTC)')
+    parser.add_argument('--file', '-f', required=True, type=str, help='Path to CSV file')
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
 
     # 读取 CSV 文件
-    df = pd.read_csv('trading_data_cache/user_fills/a3984268_2025_07_13T15_05_12.csv')
+    df = pd.read_csv(args.file)
 
     # 过滤 coin
     df = df[df['coin'] == args.coin]

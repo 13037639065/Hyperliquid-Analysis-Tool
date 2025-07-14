@@ -61,8 +61,11 @@ if __name__ == "__main__":
                 for fill in fills:
                     if fill in pre_fills:
                         continue
-
-                    writer.writerow(fill)
+                    try:
+                        writer.writerow(fill)
+                    except Exception as e:
+                        print(f"Error writing fill to CSV: {e}")
+                        print(fill)
                     f.flush()  # 实时写入
 
             time.sleep(1)
