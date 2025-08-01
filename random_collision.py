@@ -9,14 +9,13 @@ import base58
 from feishu_msg import send_feishu_text
 
 chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-trie = datrie.Trie(chars)
+TRIE = datrie.Trie(chars)
 
 def load_addresses_to_datrie(filename):
     with open(filename, 'r') as f:
         for line in f:
             addr = line.strip()
-            if addr:
-                trie[addr] = True
+            TRIE[addr] = True
 
 # 2. 生成随机私钥（32字节），并转成BTC地址
 
@@ -53,7 +52,12 @@ def generate_random_priv_key():
 def main(address_file, try_count=100000):
     print("加载公钥地址到datrie...")
     load_addresses_to_datrie(address_file)
-    print(f"共加载{len(trie)}个地址")
+    print(f"共加载{len(TRIE)}个地址")
+
+    if "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo" in TRIE:
+        print("测试成功")
+    else:
+        print("测试失败，请检查地址文件是否正确")
 
     for _ in tqdm(range(try_count)):
         priv_key = generate_random_priv_key()
@@ -62,7 +66,7 @@ def main(address_file, try_count=100000):
 
         # 显示私钥和地址
         
-        if addr in trie:
+        if addr in TRIE:
             wif = private_key_to_wif(priv_key)
             msg = "\n".join([
                 f"找到匹配地址: {addr}"
