@@ -7,6 +7,8 @@ from tqdm import tqdm
 import ecdsa
 import base58
 from feishu_msg import send_feishu_text
+from datetime import datetime
+from datetime import timedelta
 
 chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 TRIE = datrie.Trie(chars)
@@ -59,29 +61,41 @@ def main(address_file, try_count=100000):
     else:
         print("测试失败，请检查地址文件是否正确")
 
-    for _ in tqdm(range(try_count)):
-        priv_key = generate_random_priv_key()
-        pub_key = private_key_to_public_key(priv_key)
-        addr = public_key_to_address(pub_key)
+    with tqdm(range(3)) as pbar:
+        for _ in pbar:
+            priv_key = generate_random_priv_key()
+            pub_key = private_key_to_public_key(priv_key)
+            addr = public_key_to_address(pub_key)
 
-        # 显示私钥和地址
-        
-        if addr in TRIE:
-            wif = private_key_to_wif(priv_key)
-            msg = "\n".join([
-                f"找到匹配地址: {addr}"
-                f"对应私钥(WIF): {wif}",
-                f"私钥: {binascii.hexlify(priv_key).decode()}",
-                f"公钥(HEX): {binascii.hexlify(pub_key).decode()}",
-                f"生成的地址: {addr}"
-            ])
-            print(msg)
-
-            send_feishu_text("牛逼！找到匹配地址", msg)
+            # 显示私钥和地址
             
-            break
-    else:
-        print("未找到匹配的地址。")
+            if addr in TRIE:
+                wif = private_key_to_wif(priv_key)
+                msg = "\n".join([
+                    f"找到匹配地址: {addr}"
+                    f"对应私钥(WIF): {wif}",
+                    f"私钥: {binascii.hexlify(priv_key).decode()}",
+                    f"公钥(HEX): {binascii.hexlify(pub_key).decode()}",
+                    f"生成的地址: {addr}"
+                ])
+                print(msg)
+
+                send_feishu_text("牛逼！找到匹配地址", msg)
+                
+                return
+            
+        elapsed = pbar.format_dict.get("elapsed", 0)  
+
+    msg = "\n".join([
+        "未找到匹配地址",
+        f"尝试次数: {try_count}",
+        f"地址数量: {len(TRIE)}",
+        f"总耗时: {timedelta(elapsed)} 秒",
+        f"平均速度: {try_count / elapsed:.2f} 次/秒",
+        f"结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+    ])
+    print(msg)
+    send_feishu_text("未找到匹配地址, 请调整再次重试", msg)
 
 if __name__ == '__main__':
     # 替换成你的公钥地址文件路径
