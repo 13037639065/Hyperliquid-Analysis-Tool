@@ -46,7 +46,7 @@ while True:
         print(klines[-1])
         
         if result == klines[-1]:
-            send_feishu_text(f"低价提醒 {date_time_str}", json.dumps(result, indent=4))
+            send_feishu_text(f"24小时新低{klines[-1]['c']} {date_time_str}", "请注意抄底机会！")
     except Exception as e:
         print(e)
     time.sleep(60)
