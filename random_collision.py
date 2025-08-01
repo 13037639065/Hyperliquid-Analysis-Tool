@@ -81,5 +81,5 @@ def main(address_file, try_count=100000):
 
 if __name__ == '__main__':
     # 替换成你的公钥地址文件路径
-    address_txt_file = "~/data/addresses.txt"
+    address_txt_file = "./trading_data_cache/addresses.txt"
     main(address_txt_file, try_count=1e12)
