@@ -44,9 +44,15 @@ while True:
         print(date_time_str)
         print(result)
         print(klines[-1])
-        
+
         if result == klines[-1]:
-            send_feishu_text(f"24小时新低{klines[-1]['c']} {date_time_str}", "请注意抄底机会！")
+            msg = "\n".join([
+                f"帅哥，快来抄底呀~",
+                f"交易对：{symbol}",
+                f"时间：{date_time_str}",
+                f"价格: {klines[-1]['c']}",
+            ])
+            send_feishu_text(f"24小时新低", msg)
     except Exception as e:
         print(e)
     time.sleep(60)
